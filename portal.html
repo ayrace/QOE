@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Minha Carteira QoE — Técnico</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f4f7fb;color:#162033}header{background:#111827;color:white;padding:18px}header h1{margin:0;font-size:21px}header p{margin:5px 0 0;color:#cbd5e1;font-size:13px}main{max-width:980px;margin:auto;padding:16px}.top{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}.k{background:white;border-radius:14px;padding:14px;box-shadow:0 2px 12px #0001}.k b{display:block;font-size:25px}.k span{font-size:12px;color:#64748b}.card{background:white;border-radius:16px;padding:15px;margin:10px 0;box-shadow:0 2px 12px #0001}.row{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.port{font-size:18px;font-weight:800}.sub{font-size:12px;color:#64748b;margin-top:4px}.scores{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.chip{background:#eef2f7;padding:6px 9px;border-radius:999px;font-size:12px}button{border:0;border-radius:10px;padding:9px 12px;font-weight:700;cursor:pointer}.primary{background:#111827;color:white}.status{font-size:11px;font-weight:800;padding:5px 8px;border-radius:999px;background:#fee2e2;color:#991b1b}select,input,textarea{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:10px;background:white}label{font-size:12px;font-weight:800;display:block;margin:10px 0 5px}.modal{position:fixed;inset:0;background:#0009;display:none;align-items:center;justify-content:center;padding:16px}.modal.open{display:flex}.box{background:white;width:min(580px,100%);max-height:92vh;overflow:auto;padding:18px;border-radius:16px}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:15px}.empty{text-align:center;padding:40px;color:#64748b}@media(max-width:650px){.top{grid-template-columns:1fr 1fr}}
+</style></head><body>
+<header><h1>Minha Carteira QoE</h1><p id="who">Carteira individual do técnico</p></header>
+<main>
+
+<div class="top"><div class="k"><b id="kp">0</b><span>Pendentes</span></div><div class="k"><b id="ka">0</b><span>Atuações registradas</span></div><div class="k"><b id="km">0</b><span>Monitoramento</span></div><div class="k"><b id="ke">0</b><span>Estabilizadas</span></div></div>
+<div id="list"></div>
+</main>
+<div id="modal" class="modal"><div class="box"><h3>Registrar atuação</h3><div id="target" class="sub"></div>
+<label>Tipo de atuação</label><select id="type"><option>Manutenção Coaxial</option><option>MDU</option><option>Indoor</option><option>Sem oportunidade</option><option>Necessita apoio</option><option>Outro</option></select>
+<label>O que foi feito / devolutiva</label><textarea id="ret" rows="4" placeholder="Descreva a análise e a atuação realizada."></textarea>
+<label>Endereço ofensor — MDU/Indoor</label><input id="addr" placeholder="Rua, número, condomínio/local">
+<label>Observação</label><textarea id="obs" rows="2"></textarea>
+<div class="actions"><button onclick="closeM()">Cancelar</button><button class="primary" onclick="save()">Enviar devolutiva</button></div></div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SB_URL='https://qmbzmccyaaeohcmnudre.supabase.co', SB_KEY='sb_publishable_wIBfxSwQSQdPuULV0TlsKA_UQ1qpYM-', sb=window.supabase.createClient(SB_URL,SB_KEY);
+const token=new URLSearchParams(location.search).get('t');
+let DATA=[],current=null,techName='';
+function fmt(v){return v==null||Number.isNaN(+v)?'-':(+v).toFixed(1).replace('.',',')}
+async function load(){
+ if(!token){who.textContent='Link individual inválido ou incompleto';list.innerHTML='<div class="empty">Abra o link pessoal enviado pela gestão.</div>';return;}
+ const {data,error}=await sb.rpc('portal_tecnico_carteira',{p_token:token});
+ if(error){list.innerHTML='<div class="empty">Não foi possível carregar a carteira.<br>'+error.message+'</div>';return;}
+ DATA=data||[]; techName=DATA[0]?.tecnico||'Técnico'; who.textContent=techName+' — carteira individual'; render();
+}
+function render(){
+ let r=DATA,acted=r.filter(x=>x.status!=='PENDENTE');
+ kp.textContent=r.filter(x=>x.status==='PENDENTE').length;
+ ka.textContent=r.filter(x=>x.status==='ATUACAO_REGISTRADA').length;
+ km.textContent=r.filter(x=>x.status==='MONITORAMENTO'||x.status==='RECORRENTE').length;
+ ke.textContent=r.filter(x=>x.status==='ESTABILIZADA').length;
+ list.innerHTML=r.length?r.map(x=>`<div class="card"><div class="row"><div><div class="port">${x.porta}</div><div class="sub">${x.node||''}</div></div><span class="status">${x.status.replaceAll('_',' ')}</span></div><div class="scores"><span class="chip">Média 30d: <b>${fmt(x.media_30d)}</b></span><span class="chip">Atual: <b>${fmt(x.nota_atual)}</b></span></div>${x.status==='PENDENTE'?`<button class="primary" onclick="openM('${x.demanda_id}','${x.porta}')">Registrar atuação</button>`:`<div class="sub">Atuação já registrada. A porta segue no fluxo de acompanhamento.</div>`}</div>`).join(''):'<div class="empty">Nenhuma porta na carteira.</div>';
+}
+function openM(id,p){current=id;target.innerHTML='<b>'+p+'</b>';type.value='Manutenção Coaxial';ret.value='';addr.value='';obs.value='';modal.classList.add('open')}
+function closeM(){modal.classList.remove('open');current=null}
+async function save(){
+ if(!ret.value.trim())return alert('Informe a devolutiva da atuação.');
+ if((type.value==='MDU'||type.value==='Indoor')&&!addr.value.trim())return alert('Informe o endereço ofensor.');
+ const map={'Manutenção Coaxial':'MANUTENCAO_COAXIAL','MDU':'MDU','Indoor':'INDOOR','Sem oportunidade':'SEM_OPORTUNIDADE','Necessita apoio':'NECESSITA_APOIO','Outro':'OUTRO'};
+ const {error}=await sb.rpc('portal_tecnico_registrar_atuacao',{p_token:token,p_demanda:current,p_tipo:map[type.value],p_descricao:ret.value.trim(),p_endereco:addr.value.trim()||null,p_observacao:obs.value.trim()||null});
+ if(error)return alert('Não foi possível enviar: '+error.message);
+ closeM();await load();alert('Devolutiva enviada para a gestão.');
+}
+load();
+</script></body></html>
