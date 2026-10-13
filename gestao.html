@@ -188,7 +188,7 @@ tbody tr:last-child td{border-bottom:0!important}
 @media(max-width:700px){.qoe-admin-compact{margin:10px 0}.qoe-admin-compact>summary{padding:12px 14px}}
 </style>
 </head><body>
-<header><h1>QOE HFC — Tratamento e Acompanhamento</h1><div class="sub">Porto Alegre • V7.11.1K14 • Gestão QoE</div></header>
+<header><h1>QOE HFC — Tratamento e Acompanhamento</h1><div class="sub">Porto Alegre • V7.11.1K15 • Gestão QoE Online</div></header>
 
 <div class="qoe-nav-shell">
   <nav class="qoe-nav" aria-label="Navegação do painel">
@@ -938,11 +938,16 @@ async function updateDaily(){
    let days=[...new Set(Object.values(OCT).flatMap(x=>Object.keys(x[1]).map(Number)))];
    updateMsg.innerText='Atualizado até dia '+Math.max(...days)+' • '+Object.keys(OCT).length+' portas lidas';
    uploadBox.classList.add('ok');
-   // K13: só após carregar um novo relatório diário processa as demandas em MONITORAMENTO.
+   // K15: a base diária passa a ser compartilhada no Supabase.
    if(await qoeCheckSession()){
+     updateMsg.innerText+=' • salvando base online...';
+     await qoeSaveDailySnapshotV711K15(Math.max(...days));
      const r=await qoeProcessMonitoringFromDailyV711K13();
      await qoeRemoteRefresh();
+     updateMsg.innerText='Atualizado online até dia '+Math.max(...days)+' • '+Object.keys(OCT).length+' portas lidas';
      if(r.processed)updateMsg.innerText+=' • acompanhamento processado';
+   }else{
+     updateMsg.innerText+=' • entre no Supabase para publicar esta atualização';
    }
  }catch(e){
    console.error(e);updateMsg.innerText='Erro ao ler o arquivo';
@@ -993,6 +998,45 @@ async function qoeSyncPortfolio(){
  if(error)console.error('Sync portas:',error);
 }
 
+
+/* V7.11.1K15 — base QoE diária compartilhada.
+   Supabase é a fonte oficial; localStorage permanece somente como cache/fallback. */
+let qoeDailyCloudVersionV711K15='';
+async function qoeSaveDailySnapshotV711K15(ultimoDia){
+ if(!qoeCloudReady)throw new Error('Gestão não autenticada');
+ const payload={mes:'2026-10',ultimo_dia:Number(ultimoDia||0),oct:OCT};
+ const {data,error}=await qoeRpc('gestao_salvar_base_diaria',{p_payload:payload});
+ if(error)throw error;
+ if(data?.atualizado_em)qoeDailyCloudVersionV711K15=String(data.atualizado_em);
+ return data;
+}
+async function qoeLoadDailySnapshotV711K15(){
+ if(!qoeCloudReady)return false;
+ const {data,error}=await qoeRpc('gestao_ler_base_diaria',{});
+ if(error){
+   console.warn('Base diária online:',error);
+   return false;
+ }
+ const snap=Array.isArray(data)?data[0]:data;
+ if(!snap||!snap.dados)return false;
+ const version=String(snap.atualizado_em||'');
+ if(version&&version===qoeDailyCloudVersionV711K15)return false;
+ const payload=snap.dados;
+ const cloudOct=payload?.oct;
+ if(!cloudOct||typeof cloudOct!=='object'||!Object.keys(cloudOct).length)return false;
+ OCT=cloudOct;
+ localStorage.setItem('qoe_v700_oct',JSON.stringify(OCT));
+ qoeDailyCloudVersionV711K15=version;
+ rebuild();
+ const days=[...new Set(Object.values(OCT).flatMap(x=>Object.keys((x&&x[1])||{}).map(Number)))].filter(Number.isFinite);
+ if(days.length){
+   const msg=document.getElementById('updateMsg');
+   if(msg)msg.innerText='Base online carregada até dia '+Math.max(...days)+' • '+Object.keys(OCT).length+' portas';
+   const box=document.getElementById('uploadBox');if(box)box.classList.add('ok');
+ }
+ return true;
+}
+
 async function qoeProcessMonitoringFromDailyV711K13(){
  if(!await qoeCheckSession())return {processed:0};
  const {data,error}=await qoeRpc('gestao_snapshot');
@@ -1027,6 +1071,8 @@ async function qoeProcessMonitoringFromDailyV711K13(){
 
 async function qoeRemoteRefresh(){
  if(!await qoeCheckSession())return;
+ // K15: antes de montar carteira/indicadores, busca a última base diária oficial.
+ await qoeLoadDailySnapshotV711K15();
  const {data,error}=await qoeRpc('gestao_snapshot');
  if(error)return alert('Não foi possível ler o banco: '+error.message);
  if(data&&Array.isArray(data.demandas)){
