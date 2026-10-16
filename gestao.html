@@ -193,7 +193,7 @@ tbody tr:last-child td{border-bottom:0!important}
 <meta property="og:description" content="Tratamento e Acompanhamento de Rede">
 
 </head><body>
-<header><h1>QOE HFC — Tratamento e Acompanhamento</h1><div class="sub">Porto Alegre • V7.11.1K16.2 • Carga ativa corrigida</div></header>
+<header><h1>QOE HFC — Tratamento e Acompanhamento</h1><div class="sub">Porto Alegre • V7.11.1K16.3 • Carteira sincronizada + histórico da atuação</div></header>
 
 <div class="qoe-nav-shell">
   <nav class="qoe-nav" aria-label="Navegação do painel">
@@ -381,7 +381,7 @@ tbody tr:last-child td{border-bottom:0!important}
   <div class="sub">Somente portas com atuação registrada e ainda em validação de resultado.</div>
   <div class="wrap" style="margin-top:12px">
     <table>
-      <thead><tr><th>Porta</th><th>Node</th><th>Técnico</th><th>Atuação</th><th>Nota antes</th><th>Nota atual</th><th>Pós-atuação</th><th>Sequência ≥80</th><th>Situação</th></tr></thead>
+      <thead><tr><th>Porta</th><th>Node</th><th>Técnico</th><th>Atuação</th><th>Nota antes</th><th>Nota atual</th><th>Pós-atuação</th><th>Sequência ≥80</th><th>Situação</th><th>Histórico da atuação</th></tr></thead>
       <tbody id="postActionBodyV798"></tbody>
     </table>
   </div>
@@ -1658,6 +1658,12 @@ document.addEventListener('DOMContentLoaded',()=>{updateExecutiveV794();
         <td class="v710-seq">${seq}</td>
         <td>${x.ev.consecutive}/7</td>
         <td><span class="chip mon">EM ACOMPANHAMENTO</span></td>
+        <td style="min-width:300px">
+          <div><b>Tipo:</b> ${String(x.raw?.type||x.raw?.tipo_atuacao||'-').replaceAll('_',' ')}</div>
+          <div><b>O que foi feito:</b> ${x.raw?.returnText||x.raw?.descricao||'-'}</div>
+          ${(x.raw?.address||x.raw?.endereco)?`<div><b>Endereço:</b> ${x.raw?.address||x.raw?.endereco}</div>`:''}
+          ${(x.raw?.obs||x.raw?.observacao)?`<div><b>Obs.:</b> ${x.raw?.obs||x.raw?.observacao}</div>`:''}
+        </td>
       </tr>`;
     }).join('');
 
