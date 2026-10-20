@@ -193,7 +193,7 @@ tbody tr:last-child td{border-bottom:0!important}
 <meta property="og:description" content="Tratamento e Acompanhamento de Rede">
 
 </head><body>
-<header><h1>QOE HFC — Tratamento e Acompanhamento</h1><div class="sub">Porto Alegre • V7.11.1K16.3 • Carteira sincronizada + histórico da atuação</div></header>
+<header><h1>QOE HFC — Tratamento e Acompanhamento</h1><div class="sub">Porto Alegre • V7.11.1K16.4 — CANDIDATA • Controle semanal em homologação</div></header>
 
 <div class="qoe-nav-shell">
   <nav class="qoe-nav" aria-label="Navegação do painel">
@@ -294,7 +294,7 @@ tbody tr:last-child td{border-bottom:0!important}
 <div id="legacyKpisV711D" aria-hidden="true" style="display:none!important"><b id="kPorts">0</b><b id="kBands">0</b><b id="kNodes">0</b><b id="kMulti">0</b></div>
 
 <div class="panel"><h2>Histórico semanal de distribuição</h2>
-<div class="sub">Acompanhamento iniciado em 09/10/2026. Semana 1: exatamente 5 portas ativas por técnico. Cada porta permanece como unidade independente de tratamento.</div>
+<div class="sub">Acompanhamento iniciado em 09/10/2026. Marco 0 da semana 1: 13 técnicos × 5 portas. Nas próximas semanas, pendências + novas portas escolhidas pelo gestor, sem limite fixo. Cada porta permanece como unidade independente de tratamento.</div>
 <div class="toolbar">
 <label>Visualizar: <select id="weekSel" onchange="renderWeeks()"></select></label>
 <button onclick="newWeek()">Iniciar próxima semana</button>
@@ -483,41 +483,153 @@ function verifyBaseline(){
    : '<span style="color:#b42318;font-weight:bold">Atenção: a base semanal não está em 5 portas por técnico.</span>';
 }
 
-function renderWeeks(){
- if(!window.weekSel||!window.weeklyBody)return;
- if(!state.weeklyLedger){
-   state.weeklyLedger={week:1,start:new Date().toLocaleDateString('pt-BR'),received:{},treated:{}};
-   allTechNames().forEach(t=>{
-     let ports=Object.entries(state.assign||{}).filter(([p,tech])=>tech===t).map(([p])=>p);
-     const baseline=Object.entries(INITIAL_ASSIGN).filter(([p,tech])=>tech===t).map(([p])=>p);
-     for(const p of baseline) if(ports.length<5&&!ports.includes(p))ports.push(p);
-     state.weeklyLedger.received[t]=ports.slice(0,5);
-     state.weeklyLedger.treated[t]=[];
+// K16.4 candidata — controle semanal. Não altera carteira, demanda ou monitoramento.
+function qoeWeeklyUnique(xs){return [...new Set((Array.isArray(xs)?xs:[]).filter(Boolean))];}
+function qoeWeeklyEscape(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function qoeWeeklyCurrent(){
+ if(state.weeklyLedgerVersion!==164){
+   // Mantém uma cópia integral dos campos anteriores, inclusive o contador que
+   // podia ter avançado sem criar uma semana. Não recria/reset a carteira.
+   localStorage.setItem(STATEKEY+'_antes_k164',JSON.stringify(state));
+   const old=state.weeklyLedger;
+   const week=Number(old?.week)||1;
+   const wl=old?JSON.parse(JSON.stringify(old)):{week,start:'09/10/2026',received:{},treated:{}};
+   wl.received=wl.received||{};wl.treated=wl.treated||{};
+   wl.newPorts=wl.newPorts||{};
+   const receive=(p,t)=>{if(!p||!t)return;wl.received[t]=qoeWeeklyUnique([...(wl.received[t]||[]),p]);};
+   if(week===1)Object.entries(INITIAL_ASSIGN).forEach(([p,t])=>receive(p,t));
+   Object.entries(state.portReceived||{}).forEach(([p,r])=>{if(Number(r.week)===week)receive(p,r.tech);});
+   Object.entries(state.assign||{}).forEach(([p,t])=>receive(p,t));
+   (state.history||[]).filter(h=>Number(h.week)===week&&h.active).forEach(h=>{
+     receive(h.porta,h.tech);
+     if(h.tech)wl.treated[h.tech]=qoeWeeklyUnique([...(wl.treated[h.tech]||[]),h.porta]);
    });
+   Object.keys(wl.received).forEach(t=>{
+     wl.received[t]=qoeWeeklyUnique(wl.received[t]);
+     wl.treated[t]=qoeWeeklyUnique(wl.treated[t]);
+     // Só a primeira semana representa o marco inicial; herdadas nas demais
+     // não são convertidas em novas durante a migração.
+     wl.newPorts[t]=qoeWeeklyUnique(wl.newPorts[t]||(week===1?wl.received[t]:[]));
+   });
+   state.weeklyLedger=wl;
+   state.currentWeek=week;
+   state.weeklyArchive=state.weeklyArchive||{};
+   state.weeklyLedgerVersion=164;
    persist();
  }
- weekSel.innerHTML=`<option value="1">Semana 1</option>`;
- const techs=Object.keys(state.weeklyLedger.received||{}).sort((a,b)=>a.localeCompare(b,'pt-BR'));
- weeklyBody.innerHTML=techs.map(t=>{
-   const rec=state.weeklyLedger.received[t]||[];
-   // Treatments count only when explicitly registered after this ledger was started.
-   const treated=(state.weeklyLedger.treated[t]||[]).filter(p=>rec.includes(p));
-   const normalized=rec.filter(p=>{
-     if(treated.includes(p))return false;
-     const x=(window.allPorts||[]).find(z=>z.porta===p);
-     return !!(x&&Number.isFinite(+x.cur)&&+x.cur>=80);
-   });
-   const pending=Math.max(0,rec.length-treated.length-normalized.length);
-   const dist=state.distributed&&state.distributed['1|'+t];
-   return `<tr><td><b>${t}</b></td><td>Semana 1</td><td>${rec.length}</td><td>${treated.length}</td><td>${normalized.length}</td><td>${pending}</td><td>${rec.length}</td><td>${dist?`<span class="distbadge">DISTRIBUÍDA ✓ ${dist.date}${dist.time?' '+dist.time:''}</span>`:'<span class="sub">Não distribuída</span>'}</td></tr>`;
+ return state.weeklyLedger;
+}
+function qoeWeeklySelected(){
+ const current=qoeWeeklyCurrent();
+ const n=Number(document.getElementById('weekSel')?.value)||current.week;
+ return n===current.week?current:(state.weeklyArchive[n]||current);
+}
+function qoeWeeklyHasAction(p){
+ const d=(window.qoeCloudDemandByPortV711K10||{})[p];
+ if(d&&['ATUACAO_REGISTRADA','MONITORAMENTO','ESTABILIZADA','RECORRENTE'].includes(String(d.status).toUpperCase()))return true;
+ return (state.history||[]).some(h=>h.porta===p&&h.active);
+}
+function qoeWeeklyMetrics(wl,tech){
+ if(wl.closedAt&&wl.metricsByTech?.[tech])return wl.metricsByTech[tech];
+ const received=qoeWeeklyUnique(wl.received?.[tech]);
+ const treated=qoeWeeklyUnique(wl.treated?.[tech]).filter(p=>received.includes(p));
+ const normalized=received.filter(p=>{
+   if(treated.includes(p)||qoeWeeklyHasAction(p))return false;
+   const x=(window.allPorts||[]).find(z=>z.porta===p);
+   return x?.cur!=null&&String(x.cur).trim()!==''&&Number.isFinite(+x.cur)&&+x.cur>=80;
+ });
+ return {received,treated,normalized,pending:received.filter(p=>!treated.includes(p)&&!normalized.includes(p)),newPorts:qoeWeeklyUnique(wl.newPorts?.[tech]).filter(p=>received.includes(p))};
+}
+function qoeWeeklyTotals(wl){
+ const techs=Object.keys(wl.received||{});
+ const x={week:wl.week,sent:0,done:0,normalized:0,pending:0,newPorts:0,active:0,totalTechs:techs.length,rate:0};
+ techs.forEach(t=>{
+   const m=qoeWeeklyMetrics(wl,t);
+   x.sent+=m.received.length;x.done+=m.treated.length;
+   x.normalized+=m.normalized.length;x.pending+=m.pending.length;
+   x.newPorts+=m.newPorts.length;if(m.treated.length)x.active++;
+ });
+ x.rate=x.sent?x.done/x.sent*100:0;
+ return x;
+}
+function qoeWeeklyReceive(porta,tecnico){
+ const wl=qoeWeeklyCurrent();
+ const already=Object.values(wl.received).some(xs=>xs.includes(porta));
+ wl.received[tecnico]=qoeWeeklyUnique([...(wl.received[tecnico]||[]),porta]);
+ wl.treated[tecnico]=wl.treated[tecnico]||[];
+ wl.newPorts[tecnico]=qoeWeeklyUnique([...(wl.newPorts[tecnico]||[]),...(!already?[porta]:[])]);
+}
+function qoeWeeklyCarry(wl){
+ const carry={};
+ const add=(p,t)=>{if(t&&p)carry[t]=qoeWeeklyUnique([...(carry[t]||[]),p]);};
+ Object.entries(state.assign||{}).forEach(([p,t])=>{
+   const d=(window.qoeCloudDemandByPortV711K10||{})[p];
+   if(d&&!['PENDENTE','RECORRENTE'].includes(String(d.status).toUpperCase()))return;
+   const x=(window.allPorts||[]).find(z=>z.porta===p);
+   const recovered=x?.cur!=null&&String(x.cur).trim()!==''&&Number.isFinite(+x.cur)&&+x.cur>=80;
+   if(!recovered||qoeWeeklyHasAction(p))add(p,t);
+ });
+ // Uma atuação aguardando validação é pendência, mantendo seu status original.
+ // Abrir semana não cria nova demanda nem a devolve para tratamento.
+ Object.values(window.qoeCloudDemandByPortV711K10||{}).forEach(d=>{
+   if(String(d.status).toUpperCase()==='ATUACAO_REGISTRADA')add(d.porta,d.tecnico);
+ });
+ return carry;
+}
+function qoeWeeklyAdvance(start){
+ const wl=qoeWeeklyCurrent();
+ const carry=qoeWeeklyCarry(wl);
+ const stamp=new Date().toISOString();
+ const archived=JSON.parse(JSON.stringify(wl));
+ archived.metricsByTech={};
+ Object.keys(wl.received).forEach(t=>{archived.metricsByTech[t]=qoeWeeklyMetrics(wl,t);});
+ archived.closedAt=stamp;
+ const next={week:wl.week+1,start,openedAt:stamp,received:{},treated:{},newPorts:{}};
+ new Set([...Object.keys(wl.received),...Object.keys(carry)]).forEach(t=>{
+   next.received[t]=carry[t]||[];next.treated[t]=[];next.newPorts[t]=[];
+ });
+ // Grava tudo em uma única escrita. Se falhar, o estado anterior continua ativo.
+ const updated={...state,weeklyArchive:{...state.weeklyArchive,[wl.week]:archived},weeklyLedger:next,currentWeek:next.week};
+ localStorage.setItem(STATEKEY,JSON.stringify(updated));
+ state=updated;
+ return next;
+}
+function renderWeeks(){
+ if(!window.weekSel||!window.weeklyBody)return;
+ const active=qoeWeeklyCurrent();
+ const selected=Number(weekSel.value)||active.week;
+ const weeks=[...Object.keys(state.weeklyArchive||{}).map(Number),active.week].sort((a,b)=>a-b);
+ weekSel.innerHTML=weeks.map(w=>`<option value="${w}">Semana ${w}</option>`).join('');
+ weekSel.value=String(weeks.includes(selected)?selected:active.week);
+ const wl=qoeWeeklySelected();
+ weeklyBody.innerHTML=Object.keys(wl.received).sort((a,b)=>a.localeCompare(b,'pt-BR')).map(t=>{
+   const m=qoeWeeklyMetrics(wl,t);
+   const dist=state.distributed?.[wl.week+'|'+t];
+   return `<tr><td><b>${qoeWeeklyEscape(t)}</b></td><td>Semana ${wl.week}</td><td>${m.received.length}</td><td>${m.treated.length}</td><td>${m.normalized.length}</td><td>${m.pending.length}</td><td>${m.newPorts.length}</td><td>${dist?`<span class="distbadge">DISTRIBUÍDA ✓ ${qoeWeeklyEscape(dist.date)} ${qoeWeeklyEscape(dist.time||'')}</span>`:'<span class="sub">Não distribuída</span>'}</td></tr>`;
  }).join('');
  verifyBaseline();
+ if(typeof window.renderWeeklyV796==='function')window.renderWeeklyV796();
+}
+function newWeek(){
+ const wl=qoeWeeklyCurrent();
+ const start=prompt('Data de início da Semana '+(wl.week+1)+' (DD/MM/AAAA):',new Date().toLocaleDateString('pt-BR'));
+ if(start===null)return;
+ const match=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(start.trim());
+ const date=match?new Date(+match[3],+match[2]-1,+match[1]):null;
+ if(!date||date.getDate()!==+match[1]||date.getMonth()!==+match[2]-1||date.getFullYear()!==+match[3])return alert('Informe uma data válida no formato DD/MM/AAAA.');
+ const parse=s=>{const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s||'');return m?new Date(+m[3],+m[2]-1,+m[1]):null;};
+ const previous=parse(wl.start);
+ if(previous&&date<=previous)return alert('A nova semana deve começar após o início da semana atual.');
+ if(!confirm('Fechar a Semana '+wl.week+' e iniciar a Semana '+(wl.week+1)+' em '+start.trim()+'? Serão carregadas somente as pendências, sem distribuição automática de novas portas.'))return;
+ try{
+   qoeWeeklyAdvance(start.trim());
+   if(window.weekSel)weekSel.value=String(state.currentWeek);
+   // O seletor ainda contém apenas as semanas antigas; renderiza antes de selecionar.
+   renderWeeks();weekSel.value=String(state.currentWeek);renderWeeks();renderTechCards();
+   alert('Semana '+state.currentWeek+' iniciada. Histórico anterior preservado; novas portas devem ser distribuídas manualmente.');
+ }catch(e){alert('Não foi possível iniciar a semana. A semana anterior foi preservada. '+e.message);}
 }
 
-function newWeek(){
- if(!confirm('Iniciar a Semana '+(state.currentWeek+1)+'? O histórico das semanas anteriores será mantido.'))return;
- state.currentWeek++;persist();renderWeeks();
-}
 
 function renderAutoMonitor(){
   // K16.2: saneia a CARGA ATIVA antes de renderizar.
@@ -664,6 +776,7 @@ function confirmAlloc(){
      state.assignmentOrigin=state.assignmentOrigin||{};
      state.assignmentOrigin[porta]='OSCILANTE';
    }
+   qoeWeeklyReceive(porta,tecnico);
    if(!state.portReceived[porta]){
      state.portReceived[porta]={week:+state.currentWeek,tech:tecnico};
    }else{
@@ -734,19 +847,13 @@ async function copyText(){
      out+=r.dataset.porta+' | Média 30d: '+c[5].innerText+' | Atual: '+c[6].innerText+'\n';
    });
 
-   let received=[],treated=[];
-   if(state.weeklyLedger&&state.weeklyLedger.received){
-     received=state.weeklyLedger.received[t]||[];
-     treated=(state.weeklyLedger.treated&&state.weeklyLedger.treated[t])||[];
-   }else received=rs.map(r=>r.dataset.porta);
-   let treatedCount=treated.filter(p=>received.includes(p)).length;
-   let pending=Math.max(0,received.length-treatedCount);
-
-   out+='\nSemana '+(state.currentWeek||1)+'\n';
-   out+='Portas recebidas: '+received.length+'\n';
-   out+='Portas tratadas: '+treatedCount+'\n';
-   out+='Portas pendentes: '+pending+'\n';
-   out+='Novas nesta semana: '+received.length+'\n\n';
+   const metrics=qoeWeeklyMetrics(qoeWeeklyCurrent(),t);
+   out+='\nSemana '+state.currentWeek+'\n';
+   out+='Portas recebidas: '+metrics.received.length+'\n';
+   out+='Portas tratadas: '+metrics.treated.length+'\n';
+   out+='Normalizadas sem atuação: '+metrics.normalized.length+'\n';
+   out+='Portas pendentes: '+metrics.pending.length+'\n';
+   out+='Novas nesta semana: '+metrics.newPorts.length+'\n\n';
 
    const token=tokenByTech[t];
    if(token){
@@ -1379,71 +1486,17 @@ document.addEventListener('DOMContentLoaded',()=>{updateExecutiveV794();
 
 <script id="v796-weekly-report">
 (function(){
- const TOTAL_TECHS=13;
- function rows(){
-   // Usa o ledger semanal já existente; evita alterar a lógica operacional.
-   let l=window.weeklyLedger||window.state?.weeklyLedger||[];
-   if(!Array.isArray(l)) l=Object.values(l||{}).flatMap(x=>Array.isArray(x)?x:[x]);
-   return l.filter(Boolean);
- }
- function num(o,keys){for(const k of keys)if(o?.[k]!=null&&!Number.isNaN(+o[k]))return +o[k];return 0}
- function currentWeekRows(){
-   const r=rows(); if(!r.length)return [];
-   const weeks=r.map(x=>num(x,['week','semana','weekNo','weekNumber'])).filter(Boolean);
-   const w=weeks.length?Math.max(...weeks):null;
-   return w?r.filter(x=>num(x,['week','semana','weekNo','weekNumber'])===w):r;
- }
- function calc(){
-   // K16.1: usa o ledger operacional atual quando disponível.
-   const wl=window.state?.weeklyLedger;
-   if(wl&&wl.received&&wl.treated){
-     let sent=0,done=0,normalized=0,pending=0,active=new Set();
-     Object.entries(wl.received).forEach(([tech,rec0])=>{
-       const rec=Array.isArray(rec0)?rec0:[];
-       const treated=(wl.treated[tech]||[]).filter(p=>rec.includes(p));
-       const norm=rec.filter(p=>{
-         if(treated.includes(p))return false;
-         const x=(window.allPorts||[]).find(z=>z.porta===p);
-         return !!(x&&Number.isFinite(+x.cur)&&+x.cur>=80);
-       });
-       sent+=rec.length; done+=treated.length; normalized+=norm.length;
-       pending+=Math.max(0,rec.length-treated.length-norm.length);
-       if(treated.length)active.add(tech);
-     });
-     return {sent,done,normalized,pending,active:active.size,rate:sent?done/sent*100:0};
-   }
-   let r=currentWeekRows(),sent=0,done=0,normalized=0,pending=0,active=new Set();
-   r.forEach(x=>{
-     const tech=x.tech||x.tecnico||x.technician||x.login||'';
-     const s=num(x,['received','recebidas','sent','enviadas','portasRecebidas','portas_enviadas','newPorts','novas']);
-     const d=num(x,['treated','tratadas','done','executed','portasTratadas','portas_tratadas']);
-     const p=(x.pending??x.pendentes??x.portasPendentes??x.portas_pendentes);
-     sent+=s;done+=d;pending+=p!=null?(+p||0):Math.max(0,s-d);
-     if(d>0&&tech)active.add(tech);
-   });
-   // fallback: lê a tabela semanal renderizada caso o ledger esteja encapsulado no código original.
-   if(!r.length){
-     const trs=[...document.querySelectorAll('table tbody tr')];
-     trs.forEach(tr=>{
-       const t=[...tr.cells].map(c=>c.textContent.trim());
-       if(t.length>=6 && /semana/i.test(tr.closest('table')?.previousElementSibling?.textContent||'')){
-         const nums=t.map(v=>Number(String(v).replace(',','.'))).filter(Number.isFinite);
-         if(nums.length>=4){sent+=nums[1]||0;done+=nums[2]||0;pending+=nums[3]||0;if((nums[2]||0)>0)active.add(t[0])}
-       }
-     });
-   }
-   return {sent,done,normalized,pending,active:active.size,rate:sent?done/sent*100:0};
- }
+ function calc(){return qoeWeeklyTotals(qoeWeeklySelected());}
  function pct(v){return v.toFixed(1).replace('.',',')+'%'}
  window.renderWeeklyV796=function(){
    const x=calc();
    if(!document.getElementById('wkSent'))return;
-   wkSent.textContent=x.sent;wkDone.textContent=x.done;if(document.getElementById('wkNormalized'))wkNormalized.textContent=x.normalized||0;wkPending.textContent=x.pending;wkRate.textContent=pct(x.rate);wkTech.textContent=x.active+' de '+TOTAL_TECHS;
-   wkReading.innerHTML=`Foram tratadas <b>${x.done} de ${x.sent} portas (${pct(x.rate)})</b>. <b>${x.normalized||0}</b> normalizaram sem atuação e não contam como produtividade. Permanecem <b>${x.pending} portas pendentes</b>. Dos ${TOTAL_TECHS} técnicos, <b>${x.active} registraram devolutivas</b> na semana.`;
+   wkSent.textContent=x.sent;wkDone.textContent=x.done;if(document.getElementById('wkNormalized'))wkNormalized.textContent=x.normalized||0;wkPending.textContent=x.pending;wkRate.textContent=pct(x.rate);wkTech.textContent=x.active+' de '+x.totalTechs;
+   wkReading.innerHTML=`Semana ${x.week}. Foram tratadas <b>${x.done} de ${x.sent} portas (${pct(x.rate)})</b>. <b>${x.normalized||0}</b> normalizaram sem atuação e não contam como produtividade. Permanecem <b>${x.pending} portas pendentes</b>. Dos ${x.totalTechs} técnicos, <b>${x.active} registraram devolutivas</b> na semana.`;
  }
  window.copyWeeklyV796=async function(){
    const x=calc();
-   const msg=`QOE HFC — FECHAMENTO SEMANAL\n\nPortas enviadas: ${x.sent}\nPortas tratadas: ${x.done}\nNormalizadas sem atuação: ${x.normalized||0}\nPortas pendentes: ${x.pending}\nExecução da semana: ${pct(x.rate)}\nTécnicos com devolutivas: ${x.active} de ${TOTAL_TECHS}\n\nForam tratadas ${x.done} de ${x.sent} portas (${pct(x.rate)}). ${x.normalized||0} normalizaram sem atuação e não contam como produtividade. Permanecem ${x.pending} portas pendentes. Dos ${TOTAL_TECHS} técnicos, ${x.active} registraram devolutivas na semana.\n\nPriorizar as portas QoE quando estiverem sem demanda na rota e registrar as atuações realizadas no portal.`;
+   const msg=`QOE HFC — SEMANA ${x.week}\n\nPortas enviadas: ${x.sent}\nPortas tratadas: ${x.done}\nNormalizadas sem atuação: ${x.normalized||0}\nPortas pendentes: ${x.pending}\nExecução da semana: ${pct(x.rate)}\nTécnicos com devolutivas: ${x.active} de ${x.totalTechs}\n\nForam tratadas ${x.done} de ${x.sent} portas (${pct(x.rate)}). ${x.normalized||0} normalizaram sem atuação e não contam como produtividade. Permanecem ${x.pending} portas pendentes. Dos ${x.totalTechs} técnicos, ${x.active} registraram devolutivas na semana.\n\nPriorizar as portas QoE quando estiverem sem demanda na rota e registrar as atuações realizadas no portal.`;
    try{await navigator.clipboard.writeText(msg);alert('Mensagem semanal copiada.')}catch(e){prompt('Copie a mensagem:',msg)}
  }
  document.addEventListener('DOMContentLoaded',()=>setTimeout(renderWeeklyV796,500));
