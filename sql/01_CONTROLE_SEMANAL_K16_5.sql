@@ -83,7 +83,9 @@ begin
         coalesce(d.distribuida_em,d.criada_em)
  from (
    select distinct on(porta_id) * from public.demandas
-   where semana=p_semana and coalesce(distribuida_em,criada_em)<p_limite
+   where (semana=p_semana or (semana<p_semana and coalesce(distribuida_em,criada_em)>=
+     (w.inicio::timestamp at time zone 'America/Sao_Paulo')))
+     and coalesce(distribuida_em,criada_em)<p_limite
    order by porta_id,coalesce(distribuida_em,criada_em) desc,id
  ) d
  on conflict(semana,porta_id) do update set demanda_id=excluded.demanda_id;
