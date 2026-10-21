@@ -1,0 +1,81 @@
+QoE HFC — K16.5 — CONTROLE SEMANAL COMPARTILHADO
+STATUS: candidata para homologação manual. Não publicada por esta entrega.
+
+ARQUIVOS
+01_CONTROLE_SEMANAL_K16_5.sql: integração adicional para aplicar no Supabase.
+gestao.html: Gestão atualizada para utilizar o controle semanal compartilhado.
+portal.html NÃO precisa ser substituído.
+
+ORDEM DE APLICAÇÃO
+1. Guarde a Gestão atualmente publicada e o backup operacional disponível no
+   navegador em que você acompanha a semana 1. Não zere contagens nem carteiras.
+2. No Supabase do projeto qmbzmccyaaeohcmnudre, abra uma nova consulta no SQL Editor.
+   Cole o arquivo 01_CONTROLE_SEMANAL_K16_5.sql inteiro e clique Run.
+   O resultado esperado é Success (sem linhas). O script instala tudo em uma
+   transação; se aparecer erro, envie o texto e não substitua o HTML.
+3. Depois do sucesso do SQL, substitua SOMENTE gestao.html no GitHub ayrace/QOE,
+   branch main, usando o arquivo desta entrega. Não renomeie outro painel.
+4. Confira o commit e o deploy. O título da página deve indicar K16.5 e
+   Controle semanal compartilhado — em homologação. A publicação anterior da
+   prévia K16.4 apresentou falha de build; um commit sozinho não confirma deploy.
+   Caso o Cloudflare reporte falha, envie o log para diagnóstico. Não refaça
+   configurações do Worker nem mude portal.html para contornar a falha.
+5. Abra a Gestão no MESMO navegador que possui a semana 1, entre com seu login
+   habitual e clique Atualizar do Supabase. Isso permite importar uma única vez
+   as marcações de lista distribuída da semana 1 que estavam no cache local.
+6. Confira os recebimentos por porta (não por quantidade de demandas).
+   Não espere obrigatoriamente 65 recebidas: 65 foi apenas o Marco 0. O banco
+   informou 99 demandas de origem da semana 1 e 2 da semana 2; demandas repetidas
+   da mesma porta não devem duplicar o total semanal de portas.
+7. Clique Iniciar próxima semana e informe 19/10/2026 para abrir a semana 2.
+   A semana 1 será fechada até 18/10. O script não abre a semana automaticamente.
+   As duas demandas que já têm semana 2 serão preservadas como recebimentos
+   novos da semana 2. Pendências herdadas não contam como portas novas.
+8. Atualize em outro computador/gestor: a semana e os totais devem coincidir.
+9. Use Distribuir para adicionar novas portas manualmente. Exemplo obrigatório:
+   cinco pendentes mais duas novas resultam em sete na carga; sem avançar semana.
+
+CONFERÊNCIA OPERACIONAL
+- Uma devolutiva aguardando validação permanece com seu status; abrir semana
+  não valida atuação e não a devolve ao tratamento.
+- Monitoramento e estabilizadas não são realocados por abrir semana.
+- Normalização sem atuação não conta como tratada nem produtividade.
+- Leituras posteriores ao dia 18 não recalculam o fechamento da semana 1.
+- Uma porta tratada que voltou ao tratamento pode constar em tratadas e pendentes;
+  esses indicadores não são obrigatoriamente parcelas exclusivas.
+- Sem leitura disponível no corte, o sistema informa a ausência e não inventa
+  recuperação. Leituras de outro mês não são usadas para fechar outubro.
+- A origem das demandas permanece intacta. Alocações posteriores ao corte com
+  semana antiga são projetadas na semana seguinte e sinalizadas na Gestão.
+- A ação Zerar contagem semanal informa que o histórico compartilhado é preservado.
+  Para abrir semana, utilizar Iniciar próxima semana.
+
+PRESERVAÇÃO E LIMITES
+O script cria duas tabelas qoe_semanas / qoe_semana_portas e novas RPCs semanais.
+Não substitui qoe_gestor_atual, gestao_alocar, gestao_snapshot, autenticação,
+validação, monitoramento ou salvamento da base diária. Nenhuma demanda é movida,
+apagada ou recriada pela abertura de semana. Cada porta é contada uma vez por semana.
+Na alocação manual, a nova RPC chama a função gestao_alocar existente sob uma trava
+da semana. O comportamento operacional da alocação antiga é mantido.
+RLS permanece fechada nas tabelas novas. Apenas gestores autenticados autorizados
+pela função existente acessam as novas RPCs. Nenhuma service_role é incluída.
+
+O fechamento usa os eventos registrados no banco e a última leitura real da base
+diária até o corte. Eventos antigos que nunca foram registrados não são inventados.
+A cópia local anterior à K16.5 fica preservada na chave qoe_v700_state_antes_k165.
+
+VALIDAÇÃO EXECUTADA
+9 testes de cliente + 28 verificações SQL em PostgreSQL isolado (PGlite).
+Incluem 5 pendentes + 2 novas = 7, instalação repetida, acesso não autorizado,
+semana alterada por outro gestor, ausência de RPC, cache anterior, histórico
+congelado, normalização antes da atuação e recebimentos físicos sem limite de 5.
+Os scripts executáveis compilam. Regras de oscilação, validação e monitoramento
+foram comparadas com a fonte publicada e permaneceram iguais.
+Ainda exige homologação real: login, carteira, distribuição/retirada, atuação,
+portal, múltiplos endereços/MDU, acompanhamento, retorno, estabilização, recorrência,
+histórico/semanas, WhatsApp, importação diária, Supabase, backup e Marco 0.
+Não declarar a K16.5 validada apenas porque o SQL executou ou o deploy terminou.
+
+Se for necessário suspender o teste, restaure o gestao.html anterior; não exclua
+as tabelas semanais nem recrie funções antigas. O avanço compartilhado permanece
+registrado para retomada e não é apagado pela restauração do HTML antigo.
