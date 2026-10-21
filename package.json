@@ -1,0 +1,6 @@
+{
+  "name": "qoe-hfc-weekly-regression",
+  "private": true,
+  "scripts": {"test": "node --test tests/client.test.cjs && node tests/sql.test.cjs"},
+  "devDependencies": {"@electric-sql/pglite": "0.5.10"}
+}
