@@ -82,6 +82,12 @@ async function main(){
  snap=(await db.query("select gestao_semanal_distribuida('Ana',2,true) x")).rows[0].x;
  eq(!!snap.semanas[1].distribuidas.Ana,true,'distribuída persiste para todos os gestores');
  eq(snap.semana_atual,2,'marcar distribuída não avança semana');
+ await db.exec(`reset role;
+ insert into portas_qoe(porta,nota_atual) values('LEG-1',70);
+ insert into demandas(porta_id,tecnico_id,status,semana,distribuida_em)
+ select p.id,t.id,'PENDENTE',1,now() from portas_qoe p cross join tecnicos t where p.porta='LEG-1' and t.nome='Beto';
+ set role authenticated;`);
+ snap=await read();eq(snap.semanas[1].tecnicos[1].recebidas,8,'alocação por navegador antigo entra na semana compartilhada pela data');
  // Retorno após atuação e atualização de leitura não apagam tratamento histórico.
  await db.exec(`reset role;
  update demandas set status='RECORRENTE' where porta_id=(select id from portas_qoe where porta='A-3');
