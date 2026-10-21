@@ -65,7 +65,7 @@ diária até o corte. Eventos antigos que nunca foram registrados não são inve
 A cópia local anterior à K16.5 fica preservada na chave qoe_v700_state_antes_k165.
 
 VALIDAÇÃO EXECUTADA
-9 testes de cliente + 28 verificações SQL em PostgreSQL isolado (PGlite).
+9 testes de cliente + 29 verificações SQL em PostgreSQL isolado (PGlite).
 Incluem 5 pendentes + 2 novas = 7, instalação repetida, acesso não autorizado,
 semana alterada por outro gestor, ausência de RPC, cache anterior, histórico
 congelado, normalização antes da atuação e recebimentos físicos sem limite de 5.
