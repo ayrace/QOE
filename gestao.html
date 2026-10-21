@@ -193,7 +193,7 @@ tbody tr:last-child td{border-bottom:0!important}
 <meta property="og:description" content="Tratamento e Acompanhamento de Rede">
 
 </head><body>
-<header><h1>QOE HFC — Tratamento e Acompanhamento</h1><div class="sub">Porto Alegre • V7.11.1K16.3 • Carteira sincronizada + histórico da atuação</div></header>
+<header><h1>QOE HFC — Tratamento e Acompanhamento</h1><div class="sub">Porto Alegre • V7.11.1K16.5 • Controle semanal compartilhado — em homologação</div></header>
 
 <div class="qoe-nav-shell">
   <nav class="qoe-nav" aria-label="Navegação do painel">
@@ -294,7 +294,8 @@ tbody tr:last-child td{border-bottom:0!important}
 <div id="legacyKpisV711D" aria-hidden="true" style="display:none!important"><b id="kPorts">0</b><b id="kBands">0</b><b id="kNodes">0</b><b id="kMulti">0</b></div>
 
 <div class="panel"><h2>Histórico semanal de distribuição</h2>
-<div class="sub">Acompanhamento iniciado em 09/10/2026. Semana 1: exatamente 5 portas ativas por técnico. Cada porta permanece como unidade independente de tratamento.</div>
+<div class="sub">Acompanhamento iniciado em 09/10/2026. Marco 0: 13 técnicos × 5 portas. Semanas seguintes: pendências + novas portas escolhidas manualmente, sem limite fixo. Cada porta permanece como unidade independente de tratamento.</div>
+<div id="weeklySyncK165" class="sub" role="status"></div>
 <div class="toolbar">
 <label>Visualizar: <select id="weekSel" onchange="renderWeeks()"></select></label>
 <button onclick="newWeek()">Iniciar próxima semana</button>
@@ -483,41 +484,100 @@ function verifyBaseline(){
    : '<span style="color:#b42318;font-weight:bold">Atenção: a base semanal não está em 5 portas por técnico.</span>';
 }
 
-function renderWeeks(){
- if(!window.weekSel||!window.weeklyBody)return;
- if(!state.weeklyLedger){
-   state.weeklyLedger={week:1,start:new Date().toLocaleDateString('pt-BR'),received:{},treated:{}};
-   allTechNames().forEach(t=>{
-     let ports=Object.entries(state.assign||{}).filter(([p,tech])=>tech===t).map(([p])=>p);
-     const baseline=Object.entries(INITIAL_ASSIGN).filter(([p,tech])=>tech===t).map(([p])=>p);
-     for(const p of baseline) if(ports.length<5&&!ports.includes(p))ports.push(p);
-     state.weeklyLedger.received[t]=ports.slice(0,5);
-     state.weeklyLedger.treated[t]=[];
-   });
-   persist();
+// K16.5 — fonte semanal compartilhada. O estado operacional legado é preservado.
+let qoeWeeklyDataK165=null,qoeWeeklyBusyK165=false,qoeWeeklyErrorK165='';
+function qoeWeeklyEscapeK165(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function qoeWeeklyApplyK165(data){
+ if(data?.versao!==165||!Number.isInteger(data.semana_atual)||!Array.isArray(data.semanas)||!data.semanas.some(w=>w.semana===data.semana_atual))throw Error('Resposta semanal inválida.');
+ if(qoeWeeklyDataK165&&(data.semana_atual<qoeWeeklyDataK165.semana_atual||Date.parse(data.atualizado_em)<Date.parse(qoeWeeklyDataK165.atualizado_em)))return;
+ if(!localStorage.getItem(STATEKEY+'_antes_k165'))localStorage.setItem(STATEKEY+'_antes_k165',JSON.stringify(state));
+ qoeWeeklyDataK165=data;qoeWeeklyErrorK165='';state.currentWeek=data.semana_atual;
+ state.distributed=state.distributed||{};
+ data.semanas.forEach(w=>{
+   // Preserva marcações locais anteriores no backup. A nova marcação é compartilhada.
+   Object.keys(state.distributed).filter(k=>k.startsWith(w.semana+'|')).forEach(k=>delete state.distributed[k]);
+   Object.entries(w.distribuidas||{}).forEach(([t,d])=>{state.distributed[w.semana+'|'+t]=d;});
+ });
+ persist();renderWeeks();renderTechCards();
+}
+async function qoeWeeklyLoadK165(){
+ if(!await qoeCheckSession()){
+   qoeWeeklyDataK165=null;qoeWeeklyErrorK165='Entre na Gestão para consultar o controle semanal compartilhado.';renderWeeks();return false;
  }
- weekSel.innerHTML=`<option value="1">Semana 1</option>`;
- const techs=Object.keys(state.weeklyLedger.received||{}).sort((a,b)=>a.localeCompare(b,'pt-BR'));
- weeklyBody.innerHTML=techs.map(t=>{
-   const rec=state.weeklyLedger.received[t]||[];
-   // Treatments count only when explicitly registered after this ledger was started.
-   const treated=(state.weeklyLedger.treated[t]||[]).filter(p=>rec.includes(p));
-   const normalized=rec.filter(p=>{
-     if(treated.includes(p))return false;
-     const x=(window.allPorts||[]).find(z=>z.porta===p);
-     return !!(x&&Number.isFinite(+x.cur)&&+x.cur>=80);
-   });
-   const pending=Math.max(0,rec.length-treated.length-normalized.length);
-   const dist=state.distributed&&state.distributed['1|'+t];
-   return `<tr><td><b>${t}</b></td><td>Semana 1</td><td>${rec.length}</td><td>${treated.length}</td><td>${normalized.length}</td><td>${pending}</td><td>${rec.length}</td><td>${dist?`<span class="distbadge">DISTRIBUÍDA ✓ ${dist.date}${dist.time?' '+dist.time:''}</span>`:'<span class="sub">Não distribuída</span>'}</td></tr>`;
- }).join('');
+ try{
+   let {data,error}=await qoeRpc('gestao_semanal_ler');
+   if(error)throw error;
+   if(data.importacao_distribuicao_pendente&&Object.keys(state.distributed||{}).some(k=>k.startsWith('1|'))){
+     const imported=await qoeRpc('gestao_semanal_importar_distribuicao',{p_marcacoes:state.distributed});
+     if(imported.error)throw imported.error;data=imported.data;
+   }
+   qoeWeeklyApplyK165(data);return true;
+ }catch(e){
+   qoeWeeklyErrorK165='Controle semanal indisponível. Confira a instalação do SQL K16.5 e atualize do Supabase. '+(e.message||e);
+   renderWeeks();return false;
+ }
+}
+function qoeWeeklySelectedK165(){
+ if(!qoeWeeklyDataK165)return null;
+ const n=Number(document.getElementById('weekSel')?.value)||qoeWeeklyDataK165.semana_atual;
+ return qoeWeeklyDataK165.semanas.find(w=>w.semana===n)||qoeWeeklyDataK165.semanas.find(w=>w.semana===qoeWeeklyDataK165.semana_atual);
+}
+function qoeWeeklyTotalsK165(w){
+ if(!w)return null;
+ const x={week:w.semana,sent:0,done:0,normalized:0,pending:0,newPorts:0,withdrawn:0,unknown:0,active:0,totalTechs:w.tecnicos.length,rate:0};
+ w.tecnicos.forEach(t=>{
+   x.sent+=t.recebidas;x.done+=t.tratadas;x.normalized+=t.normalizadas;
+   x.pending+=t.pendentes;x.newPorts+=t.novas;x.withdrawn+=t.retiradas;x.unknown+=t.sem_leitura;
+   if(t.tratadas>0)x.active++;
+ });
+ x.rate=x.sent?100*x.done/x.sent:0;return x;
+}
+function renderWeeks(){
+ const sel=document.getElementById('weekSel'),body=document.getElementById('weeklyBody');
+ if(!sel||!body)return;
+ if(!qoeWeeklyDataK165){body.innerHTML='<tr><td colspan="8">'+qoeWeeklyEscapeK165(qoeWeeklyErrorK165||'Conecte ao Supabase para carregar as semanas.')+'</td></tr>';}
+ else{
+   const previous=Number(sel.value)||qoeWeeklyDataK165.semana_atual;
+   sel.innerHTML=qoeWeeklyDataK165.semanas.map(w=>`<option value="${w.semana}">Semana ${w.semana}${w.fechada_em?' — encerrada':' — atual'}</option>`).join('');
+   sel.value=String(qoeWeeklyDataK165.semanas.some(w=>w.semana===previous)?previous:qoeWeeklyDataK165.semana_atual);
+   const w=qoeWeeklySelectedK165();
+   body.innerHTML=w.tecnicos.map(t=>{
+     const dist=w.distribuidas?.[t.tecnico];
+     return `<tr><td><b>${qoeWeeklyEscapeK165(t.tecnico)}</b></td><td>Semana ${w.semana}</td><td>${t.recebidas}</td><td>${t.tratadas}</td><td>${t.normalizadas}</td><td>${t.pendentes}</td><td>${t.novas}</td><td>${dist?'<span class="distbadge">DISTRIBUÍDA ✓ '+qoeWeeklyEscapeK165(dist.date)+' '+qoeWeeklyEscapeK165(dist.time)+'</span>':'<span class="sub">Não distribuída</span>'}</td></tr>`;
+   }).join('');
+ }
+ const note=document.getElementById('weeklySyncK165');
+ if(note){
+   const w=qoeWeeklySelectedK165();
+   note.textContent=qoeWeeklyErrorK165|| (w?'Semana '+w.semana+' • início '+w.inicio.split('-').reverse().join('/')+(w.fim?' • fim '+w.fim.split('-').reverse().join('/'):'')+' • dados compartilhados no Supabase.':'');
+   if(w?.demandas_apos_corte)note.textContent+=' '+w.demandas_apos_corte+' demanda(s) com semana de origem anterior e recebimento após o corte foram preservadas na semana seguinte.';
+ }
+ if(typeof window.renderWeeklyV796==='function')window.renderWeeklyV796();
  verifyBaseline();
 }
-
-function newWeek(){
- if(!confirm('Iniciar a Semana '+(state.currentWeek+1)+'? O histórico das semanas anteriores será mantido.'))return;
- state.currentWeek++;persist();renderWeeks();
+async function newWeek(){
+ if(qoeWeeklyBusyK165)return;
+ qoeWeeklyBusyK165=true;
+ try{
+   if(!await qoeWeeklyLoadK165())return alert(qoeWeeklyErrorK165);
+   const n=qoeWeeklyDataK165.semana_atual;
+   const input=prompt('Data de início da Semana '+(n+1)+' (DD/MM/AAAA):',n===1?'19/10/2026':new Date().toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'}));
+   if(input===null)return;
+   const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(input.trim());
+   const date=m?new Date(+m[3],+m[2]-1,+m[1]):null;
+   if(!date||date.getDate()!==+m[1]||date.getMonth()!==+m[2]-1||date.getFullYear()!==+m[3])return alert('Informe uma data válida no formato DD/MM/AAAA.');
+   if(!confirm('Fechar a Semana '+n+' e abrir a Semana '+(n+1)+' em '+input.trim()+'? O histórico será preservado. Somente pendências serão carregadas; novas portas dependem de distribuição manual.'))return;
+   const {data,error}=await qoeRpc('gestao_semanal_iniciar',{p_semana_atual:n,p_inicio:m[3]+'-'+m[2]+'-'+m[1]});
+   if(error)throw error;
+   qoeWeeklyApplyK165(data);
+   document.getElementById('weekSel').value=String(data.semana_atual);renderWeeks();
+   alert('Semana '+data.semana_atual+' aberta no Supabase. Atualize a Gestão no outro computador para conferir.');
+ }catch(e){alert('Não foi possível confirmar a abertura. Atualize do Supabase antes de tentar novamente. '+(e.message||e));}
+ finally{qoeWeeklyBusyK165=false;}
 }
+
+
+function resetWeeklyCount(){alert('O histórico semanal compartilhado é preservado. Para abrir uma nova semana, use Iniciar próxima semana.');}
 
 function renderAutoMonitor(){
   // K16.2: saneia a CARGA ATIVA antes de renderizar.
@@ -558,23 +618,15 @@ function renderTechCards(){
   techFilter.innerHTML='<option value="">Todos os técnicos</option>'+names.map(n=>`<option ${selectedTech===n?'selected':''}>${n}</option>`).join('');
 }
 
-function toggleDistributed(tech){
- if(!state.distributed)state.distributed={};
- const key=state.currentWeek+'|'+tech;
- if(state.distributed[key]){
-   if(!confirm('Remover a marcação de lista distribuída para '+tech+'?'))return;
-   delete state.distributed[key];
- }else{
-   state.distributed[key]={
-     date:new Date().toLocaleDateString('pt-BR'),
-     time:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})
-   };
- }
- persist();
- // Keep the history table on the current operational week when distribution is marked.
- if(window.weekSel) weekSel.value=String(state.currentWeek);
- renderTechCards();
- renderWeeks();
+async function toggleDistributed(tech){
+ if(!await qoeWeeklyLoadK165())return alert(qoeWeeklyErrorK165);
+ const n=qoeWeeklyDataK165.semana_atual;
+ const w=qoeWeeklyDataK165.semanas.find(w=>w.semana===n);
+ const mark=!w.distribuidas?.[tech];
+ if(!mark&&!confirm('Remover a marcação de lista distribuída para '+tech+'?'))return;
+ const {data,error}=await qoeRpc('gestao_semanal_distribuida',{p_tecnico:tech,p_semana_esperada:n,p_distribuida:mark});
+ if(error)return alert('Marcação não confirmada: '+error.message);
+ qoeWeeklyApplyK165(data);
 }
 
 function filterTech(name){
@@ -711,6 +763,7 @@ function renderHistory(){
 }
 function band(b){let rows=[...document.querySelectorAll('#alloc tr,#queue tr')],cnt={};rows.forEach(r=>cnt[r.dataset.node]=(cnt[r.dataset.node]||0)+1);rows.forEach(r=>{let s=+r.dataset.score,ok=b==='all'||b==='lt60'&&s<60||b==='60_69'&&s>=60&&s<70||b==='70_74'&&s>=70&&s<75||b==='75_79'&&s>=75&&s<80||b==='multi'&&cnt[r.dataset.node]>=2;r.style.display=ok?'':'none'})}
 async function copyText(){
+ if(!await qoeWeeklyLoadK165())return alert(qoeWeeklyErrorK165);
  let rows=[...document.querySelectorAll('#alloc tr')].filter(r=>r.style.display!=='none'),g={};
  rows.forEach(r=>(g[r.dataset.tech]??=[]).push(r));
  if(!rows.length)return alert('Nenhuma porta alocada visível para copiar.');
@@ -734,19 +787,14 @@ async function copyText(){
      out+=r.dataset.porta+' | Média 30d: '+c[5].innerText+' | Atual: '+c[6].innerText+'\n';
    });
 
-   let received=[],treated=[];
-   if(state.weeklyLedger&&state.weeklyLedger.received){
-     received=state.weeklyLedger.received[t]||[];
-     treated=(state.weeklyLedger.treated&&state.weeklyLedger.treated[t])||[];
-   }else received=rs.map(r=>r.dataset.porta);
-   let treatedCount=treated.filter(p=>received.includes(p)).length;
-   let pending=Math.max(0,received.length-treatedCount);
-
-   out+='\nSemana '+(state.currentWeek||1)+'\n';
-   out+='Portas recebidas: '+received.length+'\n';
-   out+='Portas tratadas: '+treatedCount+'\n';
-   out+='Portas pendentes: '+pending+'\n';
-   out+='Novas nesta semana: '+received.length+'\n\n';
+   const w=qoeWeeklyDataK165.semanas.find(w=>w.semana===qoeWeeklyDataK165.semana_atual);
+   const m=w.tecnicos.find(x=>x.tecnico===t)||{recebidas:0,tratadas:0,normalizadas:0,pendentes:0,novas:0};
+   out+='\nSemana '+w.semana+'\n';
+   out+='Portas recebidas: '+m.recebidas+'\n';
+   out+='Portas tratadas: '+m.tratadas+'\n';
+   out+='Normalizadas sem atuação: '+m.normalizadas+'\n';
+   out+='Portas pendentes: '+m.pendentes+'\n';
+   out+='Novas nesta semana: '+m.novas+'\n\n';
 
    const token=tokenByTech[t];
    if(token){
@@ -1011,7 +1059,7 @@ async function qoeLogin(){
  if(error)return alert('Login não realizado: '+error.message);
  await qoeCheckSession(); await qoeRemoteRefresh();
 }
-async function qoeLogout(){await qoeSb.auth.signOut();qoeCloudReady=false;qoeCloudMsg('desconectado');}
+async function qoeLogout(){await qoeSb.auth.signOut();qoeCloudReady=false;qoeWeeklyDataK165=null;qoeWeeklyErrorK165='Entre na Gestão para consultar as semanas.';renderWeeks();qoeCloudMsg('desconectado');}
 async function qoeCheckSession(){
  const {data}=await qoeSb.auth.getSession(); qoeCloudReady=!!data.session;
  qoeCloudMsg(qoeCloudReady?'conectado ao Supabase':'desconectado',qoeCloudReady);
@@ -1149,6 +1197,7 @@ async function qoeRemoteRefresh(){
        cloudSecondaryId:q.id
      }));
    }
+   await qoeWeeklyLoadK165();
    persist(); rebuild();
    if(typeof window.renderTreatmentFlowV710==='function')window.renderTreatmentFlowV710();
  }
@@ -1190,12 +1239,16 @@ async function qoeMigrateInitial65(){
 
 const _qoeConfirmAlloc=confirmAlloc;
 confirmAlloc=async function(){
- const p=target,t=techSel.value; _qoeConfirmAlloc();
- if(qoeCloudReady&&p&&t){
-   const {error}=await qoeRpc('gestao_alocar',{p_porta:p,p_tecnico:t,p_semana:Number(state.currentWeek||1)});
-   if(error)alert('Alocação ficou somente no cache local. Supabase: '+error.message);
-   else await qoeRemoteRefresh();
- }
+ const p=target,t=techSel.value;
+ if(!p||!t)return alert('Selecione a porta e o técnico.');
+ if(window.__qoeAllocBusyK165)return;
+ window.__qoeAllocBusyK165=true;
+ try{
+   if(!await qoeWeeklyLoadK165())return alert(qoeWeeklyErrorK165);
+   const {error}=await qoeRpc('gestao_semanal_alocar',{p_porta:p,p_tecnico:t,p_semana_esperada:qoeWeeklyDataK165.semana_atual});
+   if(error)return alert('Alocação não confirmada no Supabase: '+error.message);
+   _qoeConfirmAlloc();await qoeRemoteRefresh();
+ }finally{window.__qoeAllocBusyK165=false;}
 };
 const _qoeRemoveAlloc=removeAlloc;
 removeAlloc=async function(p){
@@ -1379,71 +1432,19 @@ document.addEventListener('DOMContentLoaded',()=>{updateExecutiveV794();
 
 <script id="v796-weekly-report">
 (function(){
- const TOTAL_TECHS=13;
- function rows(){
-   // Usa o ledger semanal já existente; evita alterar a lógica operacional.
-   let l=window.weeklyLedger||window.state?.weeklyLedger||[];
-   if(!Array.isArray(l)) l=Object.values(l||{}).flatMap(x=>Array.isArray(x)?x:[x]);
-   return l.filter(Boolean);
- }
- function num(o,keys){for(const k of keys)if(o?.[k]!=null&&!Number.isNaN(+o[k]))return +o[k];return 0}
- function currentWeekRows(){
-   const r=rows(); if(!r.length)return [];
-   const weeks=r.map(x=>num(x,['week','semana','weekNo','weekNumber'])).filter(Boolean);
-   const w=weeks.length?Math.max(...weeks):null;
-   return w?r.filter(x=>num(x,['week','semana','weekNo','weekNumber'])===w):r;
- }
- function calc(){
-   // K16.1: usa o ledger operacional atual quando disponível.
-   const wl=window.state?.weeklyLedger;
-   if(wl&&wl.received&&wl.treated){
-     let sent=0,done=0,normalized=0,pending=0,active=new Set();
-     Object.entries(wl.received).forEach(([tech,rec0])=>{
-       const rec=Array.isArray(rec0)?rec0:[];
-       const treated=(wl.treated[tech]||[]).filter(p=>rec.includes(p));
-       const norm=rec.filter(p=>{
-         if(treated.includes(p))return false;
-         const x=(window.allPorts||[]).find(z=>z.porta===p);
-         return !!(x&&Number.isFinite(+x.cur)&&+x.cur>=80);
-       });
-       sent+=rec.length; done+=treated.length; normalized+=norm.length;
-       pending+=Math.max(0,rec.length-treated.length-norm.length);
-       if(treated.length)active.add(tech);
-     });
-     return {sent,done,normalized,pending,active:active.size,rate:sent?done/sent*100:0};
-   }
-   let r=currentWeekRows(),sent=0,done=0,normalized=0,pending=0,active=new Set();
-   r.forEach(x=>{
-     const tech=x.tech||x.tecnico||x.technician||x.login||'';
-     const s=num(x,['received','recebidas','sent','enviadas','portasRecebidas','portas_enviadas','newPorts','novas']);
-     const d=num(x,['treated','tratadas','done','executed','portasTratadas','portas_tratadas']);
-     const p=(x.pending??x.pendentes??x.portasPendentes??x.portas_pendentes);
-     sent+=s;done+=d;pending+=p!=null?(+p||0):Math.max(0,s-d);
-     if(d>0&&tech)active.add(tech);
-   });
-   // fallback: lê a tabela semanal renderizada caso o ledger esteja encapsulado no código original.
-   if(!r.length){
-     const trs=[...document.querySelectorAll('table tbody tr')];
-     trs.forEach(tr=>{
-       const t=[...tr.cells].map(c=>c.textContent.trim());
-       if(t.length>=6 && /semana/i.test(tr.closest('table')?.previousElementSibling?.textContent||'')){
-         const nums=t.map(v=>Number(String(v).replace(',','.'))).filter(Number.isFinite);
-         if(nums.length>=4){sent+=nums[1]||0;done+=nums[2]||0;pending+=nums[3]||0;if((nums[2]||0)>0)active.add(t[0])}
-       }
-     });
-   }
-   return {sent,done,normalized,pending,active:active.size,rate:sent?done/sent*100:0};
- }
+ function calc(){return qoeWeeklyTotalsK165(qoeWeeklySelectedK165());}
  function pct(v){return v.toFixed(1).replace('.',',')+'%'}
  window.renderWeeklyV796=function(){
    const x=calc();
    if(!document.getElementById('wkSent'))return;
-   wkSent.textContent=x.sent;wkDone.textContent=x.done;if(document.getElementById('wkNormalized'))wkNormalized.textContent=x.normalized||0;wkPending.textContent=x.pending;wkRate.textContent=pct(x.rate);wkTech.textContent=x.active+' de '+TOTAL_TECHS;
-   wkReading.innerHTML=`Foram tratadas <b>${x.done} de ${x.sent} portas (${pct(x.rate)})</b>. <b>${x.normalized||0}</b> normalizaram sem atuação e não contam como produtividade. Permanecem <b>${x.pending} portas pendentes</b>. Dos ${TOTAL_TECHS} técnicos, <b>${x.active} registraram devolutivas</b> na semana.`;
+   if(!x){['wkSent','wkDone','wkPending','wkRate','wkTech'].forEach(id=>document.getElementById(id).textContent='—');wkReading.textContent=qoeWeeklyErrorK165||'Conecte ao Supabase para carregar o resumo semanal.';return;}
+   wkSent.textContent=x.sent;wkDone.textContent=x.done;if(document.getElementById('wkNormalized'))wkNormalized.textContent=x.normalized||0;wkPending.textContent=x.pending;wkRate.textContent=pct(x.rate);wkTech.textContent=x.active+' de '+x.totalTechs;
+   wkReading.innerHTML=`Semana ${x.week}. Foram tratadas <b>${x.done} de ${x.sent} portas (${pct(x.rate)})</b>. <b>${x.normalized||0}</b> normalizaram sem atuação e não contam como produtividade. Permanecem <b>${x.pending} portas pendentes</b>. Dos ${x.totalTechs} técnicos, <b>${x.active} registraram devolutivas</b> na semana. Retiradas: ${x.withdrawn}. Sem leitura disponível: ${x.unknown}. Portas que retornaram ao tratamento podem constar em tratadas e pendentes.`;
  }
  window.copyWeeklyV796=async function(){
-   const x=calc();
-   const msg=`QOE HFC — FECHAMENTO SEMANAL\n\nPortas enviadas: ${x.sent}\nPortas tratadas: ${x.done}\nNormalizadas sem atuação: ${x.normalized||0}\nPortas pendentes: ${x.pending}\nExecução da semana: ${pct(x.rate)}\nTécnicos com devolutivas: ${x.active} de ${TOTAL_TECHS}\n\nForam tratadas ${x.done} de ${x.sent} portas (${pct(x.rate)}). ${x.normalized||0} normalizaram sem atuação e não contam como produtividade. Permanecem ${x.pending} portas pendentes. Dos ${TOTAL_TECHS} técnicos, ${x.active} registraram devolutivas na semana.\n\nPriorizar as portas QoE quando estiverem sem demanda na rota e registrar as atuações realizadas no portal.`;
+   if(!await qoeWeeklyLoadK165())return alert(qoeWeeklyErrorK165);
+   const x=calc();if(!x)return;
+   const msg=`QOE HFC — SEMANA ${x.week}\n\nPortas enviadas: ${x.sent}\nPortas tratadas: ${x.done}\nNormalizadas sem atuação: ${x.normalized||0}\nPortas pendentes: ${x.pending}\nNovas nesta semana: ${x.newPorts}\nRetiradas: ${x.withdrawn}\nExecução da semana: ${pct(x.rate)}\nTécnicos com devolutivas: ${x.active} de ${x.totalTechs}\n\nForam tratadas ${x.done} de ${x.sent} portas (${pct(x.rate)}). ${x.normalized||0} normalizaram sem atuação e não contam como produtividade. Permanecem ${x.pending} portas pendentes. Dos ${x.totalTechs} técnicos, ${x.active} registraram devolutivas na semana.\n\nPriorizar as portas QoE quando estiverem sem demanda na rota e registrar as atuações realizadas no portal.`;
    try{await navigator.clipboard.writeText(msg);alert('Mensagem semanal copiada.')}catch(e){prompt('Copie a mensagem:',msg)}
  }
  document.addEventListener('DOMContentLoaded',()=>setTimeout(renderWeeklyV796,500));
