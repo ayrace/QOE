@@ -1,0 +1,118 @@
+QoE HFC — K17.1 — candidata para homologação
+Correções de fluxo, carteira e execução semanal. Não publicada nesta entrega.
+
+ORDEM DE APLICAÇÃO MANUAL
+1. Guarde os arquivos gestao.html e portal.html atualmente publicados no GitHub.
+   Não zere carteiras, semanas, históricos nem a distribuição do Marco 0.
+2. No Supabase do projeto qmbzmccyaaeohcmnudre, abra uma nova consulta no SQL Editor.
+   Cole o arquivo 01_SUPABASE_K17_1.sql inteiro e execute.
+   Esperado: Success. A instalação é transacional e confere os pré-requisitos.
+   Se aparecer erro, envie o texto; não substitua os HTMLs nesse caso.
+3. Após sucesso do SQL, substitua SOMENTE gestao.html e portal.html pelos arquivos
+   desta entrega, no repositório ayrace/QOE, branch main.
+4. Confira os arquivos no GitHub, aguarde o deploy e confira a versão K17.1 nas
+   duas páginas. Um commit sozinho não comprova publicação. Se o Cloudflare falhar,
+   envie o log; não altere configurações ou renomeie outro painel para contornar.
+5. Reabra as páginas para evitar uma aba antiga usando as RPCs anteriores.
+6. Entre na Gestão e clique Atualizar do Supabase. A primeira atualização preserva
+   as leituras da base fechada de setembro e não sobrescreve correções já arquivadas.
+7. Para o analítico novo, selecione o mês correto no campo Mês do relatório.
+   Exemplo: 2026-11 para novembro. Confirme o mês na importação.
+
+PRÉ-REQUISITOS
+Esta evolução utiliza o controle semanal K16.5 já presente na Gestão em main.
+O SQL verifica qoe_semanas, qoe_semana_portas, monitoramento e as colunas utilizadas
+antes de instalar. Não executa uma reinstalação do banco nem redefine gestores.
+
+TESTE PRINCIPAL — VALIDAÇÃO TARDIA
+- Técnico registra a data/hora REAL em que atuou, o que fez e os endereços.
+- Se a Gestão aprovar dias depois, a data da aprovação não reinicia o acompanhamento.
+- A validação consulta imediatamente todas as leituras reais posteriores à atuação.
+- Qualquer leitura <80 retorna para PENDENTE, mantendo o mesmo técnico.
+- Sete dias reais consecutivos >=80 confirmam ESTABILIZADA.
+- Dias faltantes não contam como bons. Leituras duplicadas não multiplicam dias.
+- O dia da atuação é excluído porque a extração diária não informa o horário da leitura.
+- Enquanto o acompanhamento estiver aberto, uma leitura ruim prevalece mesmo que
+  a nota atual já tenha se recuperado. O histórico da tentativa fica preservado.
+
+REGISTROS ANTIGOS SEM DATA REAL
+- A data de registro antiga é preservada e identificada como legada.
+- Em devolutivas aguardando validação, confira a data real com o técnico no campo
+  indicado antes de aprovar. A origem dessa conferência fica registrada.
+- Em monitoramentos legados sem data real, use Confirmar data real na própria linha.
+  A confirmação já analisa as leituras e pode devolver ao técnico imediatamente.
+- O sistema não presume a data real nem classifica o resultado desses monitoramentos
+  antes da conferência. Resultados históricos já encerrados não são reabertos.
+- No relatório, datas legadas ficam sinalizadas. Havendo datas potencialmente tardias
+  ainda não confirmadas, o técnico não é acusado automaticamente de zero atuação.
+
+CARTEIRA E PRÓXIMA SEMANA
+- Atualizar o analítico não cria novas demandas nem distribui portas.
+- Recuperada sem atuação: sai da carteira de execução, mantendo demanda e recebimento.
+- Se voltar a piorar, fica disponível na fila para escolha manual; não reaparece
+  automaticamente na carteira por existir uma demanda antiga PENDENTE no banco.
+- Retorno pós-atuação por leitura ruim: volta ao mesmo técnico e preserva a tentativa.
+- Iniciar próxima semana carrega pendências e não distribui novas portas.
+- Distribuir adiciona manualmente as novas e não avança a semana.
+- Cinco pendentes + cinco novas = dez na carga. Não existe limite fixo de cinco.
+- Recebidas e carga ativa podem ser diferentes: normalizadas continuam no histórico
+  de recebimento, sem contar como produtividade.
+- Não clique na migração do Marco 0 para iniciar uma nova semana.
+
+RELATÓRIO POR TÉCNICO
+Na visão semanal há Execução e resultado por técnico:
+Herdadas, novas, recebidas, portas com atuação real, devolutivas registradas,
+aguardando Gestão, validadas, estabilizadas, retornos, em acompanhamento e pendentes.
+A semana de execução usa a data real, e não a data da aprovação.
+SEM ATUAÇÃO REAL NA SEMANA exige pendência de execução e ausência de atuação real.
+Uma devolutiva aguardando validação fica identificada como pendência da Gestão.
+Sem oportunidade / Necessita apoio são devolutivas, mas não são atuação real executada.
+Copiar cobrança prepara texto e lista de pendências; não envia mensagem automaticamente.
+
+ASSERTIVIDADE
+O indicador Execução original permanece separado: tratadas / recebidas.
+O novo indicador usa estabilizadas / (estabilizadas + retornos), considerando o
+resultado da última atuação de cada porta na semana. Cada porta é contada uma vez.
+Atuações sem resultado e aguardando validação não entram no denominador.
+O indicador é parcial enquanto houver casos em acompanhamento/validação.
+Resultados de atuações da semana continuam sendo atualizados após seu fechamento;
+isso não reescreve a fotografia operacional de recebimento/fechamento daquela semana.
+Tentativas anteriores permanecem no histórico da porta.
+
+PRESERVAÇÃO
+- Base congelada K16.2 preservada. O gerador reaplica as evoluções de histórico e
+  controle semanal publicadas, com verificação de hashes, antes das correções.
+- Não modifica qoe_gestor_atual() nem seu retorno UUID.
+- Não substitui as RPCs operacionais existentes: acrescenta RPCs K17.
+- Não altera status permitidos de demandas, técnicos, gestores, tokens ou vínculos.
+- Acrescenta somente contexto de atuação, leituras por data e observação de carteira,
+  com RLS fechada e acesso pelas RPCs autorizadas. Nenhuma service_role é incluída.
+- Endereços múltiplos, oscilação, retirada manual, Marco 0 e validação/devolução
+  existentes foram preservados. Foram corrigidas referências inexistentes no
+  formulário de atuação da Gestão para reutilizar sua carteira/renderização reais.
+- A importação aceita XML com/sem prefixos e ignora células vazias, sem inventar zero.
+
+TESTES EXECUTADOS (AMBIENTE ISOLADO)
+38 verificações SQL em PostgreSQL/PGlite e 11 testes de fluxo/interface em JSDOM.
+Excel real: 4.058 portas e 48.288 leituras até dia 12, comparadas com leitura XML
+independente. Gravação em lote também conferida com essas mesmas leituras.
+Incluem aprovação tardia, retorno imediato, sete dias com lacunas, virada de mês,
+data antiga conferida, três endereços, clique duplicado, carteira sem redistribuição,
+cinco pendentes + cinco novas, histórico de recebimento, relatório e texto de cobrança.
+Funções existentes e retorno UUID foram comparados antes/depois da migração de teste.
+
+LIMITES DE HOMOLOGAÇÃO
+Não houve acesso autenticado ao seu Supabase nem teste no seu endereço online.
+Antes de considerar validada, confira login, carteira por técnico, distribuição e
+retirada, atuação pelo Portal/Gestão, múltiplos endereços/MDU, validação tardia,
+monitoramento, retorno, estabilização, recorrência, semana/histórico, WhatsApp,
+atualização diária, compartilhamento entre computadores e backup.
+Pendência pré-existente observada: o HTML anterior referencia exportBackup e
+importBackup sem definições encontradas. Esta evolução não inventa um formato de
+backup incompatível. A regressão desses dois botões continua pendente; guarde os
+arquivos publicados e o backup disponível do banco para o teste de homologação.
+
+RETOMADA
+Se precisar suspender a candidata, restaure os dois HTMLs anteriores. Não exclua
+as tabelas novas nem apague tratamentos, semanas ou eventos. Os retornos e as
+validações legítimos já realizados permanecem registrados para a retomada.
