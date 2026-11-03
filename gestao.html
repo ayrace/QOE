@@ -193,7 +193,7 @@ tbody tr:last-child td{border-bottom:0!important}
 <meta property="og:description" content="Tratamento e Acompanhamento de Rede">
 
 </head><body>
-<header><h1>QOE HFC — Tratamento e Acompanhamento</h1><div class="sub">Porto Alegre • V7.11.1K16.5 • Controle semanal compartilhado — em homologação</div></header>
+<header><h1>QOE HFC — Tratamento e Acompanhamento</h1><div class="sub">Porto Alegre • V7.11.1K17.1 • Fluxo e execução semanal — em homologação</div></header>
 
 <div class="qoe-nav-shell">
   <nav class="qoe-nav" aria-label="Navegação do painel">
@@ -219,7 +219,7 @@ tbody tr:last-child td{border-bottom:0!important}
 <!-- V7.11.1K5: botão de migração inicial das 65 portas removido da interface após conclusão da etapa de migração. Função interna preservada para não interferir no restante do painel. -->
 <span id="migration65Status" class="sub" style="display:inline"></span>
 </div>
-<div id="uploadBox" class="upload"><b>Atualizar relatório diário de outubro</b><div class="sub">Selecione a extração Excel da aba Export (Data - Dia / NODES - PORTAS). Setembro permanece fechado; a nova extração substitui somente a base diária de outubro.</div><div class="toolbar"><input id="dailyFile" type="file" accept=".xlsx"><button class="primary" onclick="updateDaily()">Atualizar relatório diário</button>
+<div id="uploadBox" class="upload"><b>Atualizar relatório diário</b><div class="sub">Selecione a extração Excel da aba Export (Data - Dia / NODES - PORTAS). Informe o mês correto da extração. O histórico importado fica preservado.</div><div class="toolbar"><label>Mês do relatório <input id="reportMonthK17" type="month" value="2026-10"></label><input id="dailyFile" type="file" accept=".xlsx"><button class="primary" onclick="updateDaily()">Atualizar relatório diário</button>
 <button onclick="exportBackup()">Exportar backup completo</button>
 <input id="backupFile" type="file" accept=".json,application/json" style="display:none" onchange="importBackup(this.files[0])">
 <button onclick="document.getElementById('backupFile').click()">Importar backup</button>
@@ -302,7 +302,7 @@ tbody tr:last-child td{border-bottom:0!important}
 <button style="border-color:#b42318;color:#b42318" onclick="resetWeeklyCount()">Zerar contagem semanal</button>
 </div>
 <div class="wrap"><table><thead><tr><th>Técnico</th><th>Semana</th><th>Portas recebidas</th><th>Portas tratadas</th><th>Normalizadas sem atuação</th><th>Pendentes</th><th>Novas na semana</th><th>Distribuição</th></tr></thead><tbody id="weeklyBody"></tbody></table></div></div>
-<div class="panel"><h2>Portas alocadas para tratamento</h2>
+<div class="panel" id="weeklyTechReportK17"><h2>Execução e resultado por técnico</h2><div id="techReportNoteK17" class="sub"></div><div class="wrap"><table><thead><tr><th>Técnico</th><th>Herdadas</th><th>Novas</th><th>Recebidas</th><th>Atuadas</th><th>Aguardando Gestão</th><th>Validadas</th><th>Estabilizadas</th><th>Retornos</th><th>Acompanhamento</th><th>Pendentes de atuação</th><th>Assertividade</th><th>WhatsApp</th></tr></thead><tbody id="techReportBodyK17"></tbody></table></div></div><div class="panel"><h2>Portas alocadas para tratamento</h2>
 <div class="sub">Selecione um técnico para visualizar somente a carteira dele.</div>
 <div id="techCards" class="techs"></div>
 <div class="toolbar">
@@ -436,6 +436,8 @@ function rebuild(){
        m30=avg(recent30),hist=avg(allVals),cur=ov[ov.length-1],
        bad7=recent7.filter(v=>v<80).length,good7=recent7.filter(v=>v>=80).length,
        avg7=avg(recent7),cross7=0;
+   const cloud=qoePortasResumoK17?.[porta];
+   if(cloud){m30=Number(cloud.media_30d);cur=Number(cloud.nota_atual);recent7=(cloud.leituras_recentes||[]).map(Number);bad7=recent7.filter(v=>v<80).length;good7=recent7.filter(v=>v>=80).length;avg7=avg(recent7);}
    for(let i=1;i<recent7.length;i++)if((recent7[i-1]<80)!=(recent7[i]<80))cross7++;
    let degraded=cur<80;
    // K16 — regra operacional validada:
@@ -484,6 +486,36 @@ function verifyBaseline(){
    : '<span style="color:#b42318;font-weight:bold">Atenção: a base semanal não está em 5 portas por técnico.</span>';
 }
 
+// K17 — correções de fluxo; nenhuma distribuição automática.
+let qoePortasResumoK17=null,qoeReportK17=null,qoeReportRequestK17=0;
+function qoeXmlTagsK17(parent,name){return [...parent.getElementsByTagNameNS('*',name)];}
+function qoeLocalInputK17(){return new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date()).replace(' ','T');}
+function qoeActionIsoK17(id){const v=document.getElementById(id)?.value;if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v||''))throw Error('Informe a data e hora da atuação.');const d=new Date(v+'-03:00');if(!Number.isFinite(+d)||d>new Date())throw Error('Data/hora inválida ou futura.');return d.toISOString();}
+async function qoeConfirmMonitorDateK17(id){
+ let date;try{date=qoeActionIsoK17('monitorActualK17-'+id);}catch(e){return alert(e.message);}
+ const {data,error}=await qoeRpc('gestao_confirmar_data_atuacao_k17',{p_tratativa_id:id,p_atuada_em:date});
+ if(error)return alert('Data não confirmada: '+error.message);
+ await qoeRemoteRefresh();alert(data?.status==='PENDENTE'?'Data confirmada. Leitura pós-atuação abaixo de 80: porta devolvida ao técnico.':data?.status==='ESTABILIZADA'?'Data confirmada. Sete dias reais consecutivos confirmam estabilização.':'Data confirmada. Acompanhamento continua com as leituras reais disponíveis.');
+}
+function qoeMonthK17(){const value=document.getElementById('reportMonthK17')?.value;if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(value||''))throw Error('Selecione o mês do relatório.');return value;}
+async function qoeReportLoadK17(){
+ const panel=document.getElementById('techReportBodyK17');if(!panel)return;
+ if(!qoeWeeklyDataK165){qoeReportK17=null;panel.innerHTML='<tr><td colspan="13">Entre na Gestão para carregar o relatório.</td></tr>';return;}
+ const w=qoeWeeklySelectedK165();if(!w)return;const request=++qoeReportRequestK17;
+ const {data,error}=await qoeRpc('gestao_relatorio_tecnicos_k17',{p_semana:w.semana});
+ if(request!==qoeReportRequestK17)return;
+ if(error){qoeReportK17=null;panel.innerHTML='<tr><td colspan="13">'+escV78('Não foi possível carregar: '+error.message)+'</td></tr>';return;}
+ qoeReportK17=data;
+ const rows=data.tecnicos||[];
+ document.getElementById('techReportNoteK17').textContent='Semana '+data.semana+' • resultados das atuações desta semana, atualizados após o fechamento. Assertividade = estabilizadas ÷ (estabilizadas + retornos). Casos em acompanhamento não entram no denominador.';
+ panel.innerHTML=rows.map((t,i)=>`<tr${t.sem_atuacao?' style="background:#fff1f2"':''}><td><b>${escV78(t.tecnico)}</b><br><small>${t.sem_atuacao?'SEM ATUAÇÃO REAL NA SEMANA':t.aguardando_validacao?'Há devolutivas aguardando a Gestão':'Execução registrada ou sem pendência de atuação'}</small>${t.datas_legadas?'<br><small>Há datas legadas de registro; data real não informada.</small>':''}</td><td>${t.herdadas}</td><td>${t.novas}</td><td>${t.recebidas}</td><td>${t.atuadas}<br><small>${t.devolutivas} devolutivas</small></td><td>${t.aguardando_validacao}</td><td>${t.validadas}</td><td>${t.estabilizadas}</td><td>${t.retornos}</td><td>${t.acompanhamento}</td><td>${t.pendentes}</td><td>${t.assertividade==null?'Aguardando resultado':t.assertividade+'%'}${t.acompanhamento||t.aguardando_validacao?'<br><small>Parcial</small>':''}</td><td><button onclick="qoeCopyChargeK17(${i})">Copiar cobrança</button></td></tr>`).join('');
+}
+async function qoeCopyChargeK17(i){
+ const t=qoeReportK17?.tecnicos?.[i];if(!t)return;
+ const message=`Olá, ${t.tecnico}. Segue o acompanhamento QoE da semana ${qoeReportK17.semana}.\n\nPendências herdadas: ${t.herdadas}\nNovas recebidas: ${t.novas}\nPortas com atuação real na semana: ${t.atuadas}\nDevolutivas aguardando validação da Gestão: ${t.aguardando_validacao}\nPendentes de atuação: ${t.pendentes}\n\n${t.sem_atuacao?'Não identificamos atuação real registrada para esta semana. Precisamos avançar nas portas pendentes.':'Precisamos avançar nas pendências abaixo.'}\n${(t.portas_pendentes||[]).join(', ')||'Sem porta pendente de atuação.'}\n\nRegistre a data real da atuação e a devolutiva no Portal. Se houver impedimento ou necessidade de apoio, sinalize à Gestão.`;
+ try{await navigator.clipboard.writeText(message);alert('Mensagem copiada.');}catch{prompt('Copie a mensagem:',message);}
+}
+
 // K16.5 — fonte semanal compartilhada. O estado operacional legado é preservado.
 let qoeWeeklyDataK165=null,qoeWeeklyBusyK165=false,qoeWeeklyErrorK165='';
 function qoeWeeklyEscapeK165(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -505,7 +537,7 @@ async function qoeWeeklyLoadK165(){
    qoeWeeklyDataK165=null;qoeWeeklyErrorK165='Entre na Gestão para consultar o controle semanal compartilhado.';renderWeeks();return false;
  }
  try{
-   let {data,error}=await qoeRpc('gestao_semanal_ler');
+   let {data,error}=await qoeRpc('gestao_semanal_ler_k17');
    if(error)throw error;
    if(data.importacao_distribuicao_pendente&&Object.keys(state.distributed||{}).some(k=>k.startsWith('1|'))){
      const imported=await qoeRpc('gestao_semanal_importar_distribuicao',{p_marcacoes:state.distributed});
@@ -553,6 +585,7 @@ function renderWeeks(){
    if(w?.demandas_apos_corte)note.textContent+=' '+w.demandas_apos_corte+' demanda(s) com semana de origem anterior e recebimento após o corte foram preservadas na semana seguinte.';
  }
  if(typeof window.renderWeeklyV796==='function')window.renderWeeklyV796();
+ if(typeof qoeReportLoadK17==='function')qoeReportLoadK17();
  verifyBaseline();
 }
 async function newWeek(){
@@ -567,7 +600,7 @@ async function newWeek(){
    const date=m?new Date(+m[3],+m[2]-1,+m[1]):null;
    if(!date||date.getDate()!==+m[1]||date.getMonth()!==+m[2]-1||date.getFullYear()!==+m[3])return alert('Informe uma data válida no formato DD/MM/AAAA.');
    if(!confirm('Fechar a Semana '+n+' e abrir a Semana '+(n+1)+' em '+input.trim()+'? O histórico será preservado. Somente pendências serão carregadas; novas portas dependem de distribuição manual.'))return;
-   const {data,error}=await qoeRpc('gestao_semanal_iniciar',{p_semana_atual:n,p_inicio:m[3]+'-'+m[2]+'-'+m[1]});
+   const {data,error}=await qoeRpc('gestao_semanal_iniciar_k17',{p_semana_atual:n,p_inicio:m[3]+'-'+m[2]+'-'+m[1]});
    if(error)throw error;
    qoeWeeklyApplyK165(data);
    document.getElementById('weekSel').value=String(data.semana_atual);renderWeeks();
@@ -771,7 +804,7 @@ async function copyText(){
  // Busca os tokens exclusivamente pela RPC autenticada da gestão.
  let tokenByTech={};
  if(await qoeCheckSession()){
-   const snap=await qoeRpc('gestao_snapshot');
+   const snap=await qoeRpc('gestao_snapshot_k17');
    if(!snap.error && snap.data && Array.isArray(snap.data.tecnicos)){
      snap.data.tecnicos.forEach(t=>{if(t.nome&&t.token_acesso)tokenByTech[t.nome]=t.token_acesso;});
    }
@@ -821,9 +854,9 @@ async function copyText(){
 const MANAGERS_V7=['Ayrã','Adair','Claudionei','Raphael Castro','Rodrigo Torres'];
 let treatTargetV7=null;
 function ensureV7(){state.demandManager=state.demandManager||{};state.treatmentDetails=state.treatmentDetails||{};state.secondaryQueue=state.secondaryQueue||[];}
-function openTreatV7(p){ensureV7();treatTargetV7=p;const x=DATA.find(z=>z.porta===p)||{};treatPortV7.innerHTML='<b>'+p+'</b>'+(x.node?' • '+x.node:'')+(state.assign[p]?' • Técnico: '+state.assign[p]:'');managerV7.value=state.demandManager[p]||'';actionTypeV7.value='';returnV7.value='';addressV7.value='';obsV7.value='';treatModalV7.classList.add('open');}
+function openTreatV7(p){ensureV7();treatTargetV7=p;const x=portfolio.find(z=>z.porta===p)||{};treatPortV7.innerHTML='<b>'+p+'</b>'+(x.node?' • '+x.node:'')+(state.assign[p]?' • Técnico: '+state.assign[p]:'');managerV7.value=state.demandManager[p]||'';actionTypeV7.value='';returnV7.value='';addressV7.value='';obsV7.value='';document.getElementById('actionAtK17').value=qoeLocalInputK17();treatModalV7.classList.add('open');}
 function closeTreatV7(){treatModalV7.classList.remove('open');treatTargetV7=null;}
-function confirmTreatV7(){ensureV7();const p=treatTargetV7;if(!p)return;const manager=managerV7.value,type=actionTypeV7.value,ret=returnV7.value.trim(),addr=addressV7.value.trim(),obs=obsV7.value.trim();if(!manager)return alert('Selecione o gestor demandante.');if(!type)return alert('Selecione o tipo de atuação.');if(!ret)return alert('Informe o que foi feito ou a devolutiva.');if((type==='MDU'||type==='Indoor')&&!addr)return alert('Informe o endereço ofensor.');const x=DATA.find(z=>z.porta===p)||{},tech=state.assign[p]||'';state.demandManager[p]=manager;const d={date:new Date().toLocaleDateString('pt-BR'),time:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),porta:p,node:x.node||'',tech,manager,type,returnText:ret,address:addr,obs,before:x.m30,current:x.cur};(state.treatmentDetails[p]??=[]).push(d);if(type==='MDU'||type==='Indoor')state.secondaryQueue.push({...d,status:'Nova demanda'});state.history.push({date:d.date,time:d.time,porta:p,node:x.node,tech,before:x.m30,current:x.cur,active:true,week:state.currentWeek,manager,type,returnText:ret,address:addr,obs});if(state.weeklyLedger&&state.weeklyLedger.received&&state.weeklyLedger.received[tech]){state.weeklyLedger.treated[tech]=state.weeklyLedger.treated[tech]||[];if(!state.weeklyLedger.treated[tech].includes(p))state.weeklyLedger.treated[tech].push(p);}delete state.assign[p];persist();closeTreatV7();renderAll();alert(type==='MDU'||type==='Indoor'?'Tratativa salva e demanda '+type+' criada.':'Tratativa salva e porta enviada para acompanhamento.');}
+function confirmTreatV7(){ensureV7();const p=treatTargetV7;if(!p)return;const manager=managerV7.value,type=actionTypeV7.value,ret=returnV7.value.trim(),addr=addressV7.value.trim(),obs=obsV7.value.trim();if(!manager)return alert('Selecione o gestor demandante.');if(!type)return alert('Selecione o tipo de atuação.');if(!ret)return alert('Informe o que foi feito ou a devolutiva.');if((type==='MDU'||type==='Indoor')&&!addr)return alert('Informe o endereço ofensor.');const x=portfolio.find(z=>z.porta===p)||{},tech=state.assign[p]||'';state.demandManager[p]=manager;const d={date:new Date().toLocaleDateString('pt-BR'),time:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),porta:p,node:x.node||'',tech,manager,type,returnText:ret,address:addr,obs,before:x.m30,current:x.cur};(state.treatmentDetails[p]??=[]).push(d);if(type==='MDU'||type==='Indoor')state.secondaryQueue.push({...d,status:'Nova demanda'});state.history.push({date:d.date,time:d.time,porta:p,node:x.node,tech,before:x.m30,current:x.cur,active:true,week:state.currentWeek,manager,type,returnText:ret,address:addr,obs});if(state.weeklyLedger&&state.weeklyLedger.received&&state.weeklyLedger.received[tech]){state.weeklyLedger.treated[tech]=state.weeklyLedger.treated[tech]||[];if(!state.weeklyLedger.treated[tech].includes(p))state.weeklyLedger.treated[tech].push(p);}delete state.assign[p];persist();closeTreatV7();rebuild();alert(type==='MDU'||type==='Indoor'?'Tratativa salva e demanda '+type+' criada.':'Tratativa salva e porta enviada para acompanhamento.');}
 
 
 
@@ -865,21 +898,24 @@ function qoeFmtCloudDateV711K(v){try{const d=new Date(v);return d.toLocaleDateSt
 function renderPendingReturnsV711K(){
  const el=document.getElementById('pendingReturnsV711K'),ct=document.getElementById('pendingReturnsCountV711K'); if(!el)return;
  const rows=window.qoePendingReturnsV711K||[]; if(ct)ct.textContent=rows.length?'('+rows.length+')':'';
- el.innerHTML=rows.length?rows.map(({tr,d})=>`<tr><td>${escV78(qoeFmtCloudDateV711K(tr.criado_em))}</td><td>${escV78(d.tecnico||'—')}</td><td><b>${escV78(d.porta)}</b></td><td>${escV78(String(tr.tipo||'').replaceAll('_',' '))}</td><td style="min-width:240px">${escV78(tr.descricao||'—')}</td><td>${escV78(tr.endereco||'—')}</td><td>${escV78(tr.observacao||'—')}</td><td style="min-width:250px"><button class="primary" onclick="qoeValidateCloudReturnV711K('${String(tr.id)}')">Validar atuação</button> <button style="border-color:#b42318;color:#b42318" onclick="qoeReturnCloudTreatmentV711K('${String(tr.id)}')">Devolver para tratamento</button></td></tr>`).join(''):'<tr><td colspan="8">Nenhuma devolutiva pendente de validação.</td></tr>';
+ el.innerHTML=rows.length?rows.map(({tr,d})=>`<tr><td>${escV78(qoeFmtCloudDateV711K(tr.atuada_em||tr.criado_em)+(tr.data_informada?'':' (data legada de registro)'))}${!tr.data_informada?'<label>Data/hora real conferida com o técnico</label><input type="datetime-local" id="legacyActionK17-'+tr.id+'">':''}</td><td>${escV78(d.tecnico||'—')}</td><td><b>${escV78(d.porta)}</b></td><td>${escV78(String(tr.tipo||'').replaceAll('_',' '))}</td><td style="min-width:240px">${escV78(tr.descricao||'—')}</td><td>${escV78(tr.endereco||'—')}</td><td>${escV78(tr.observacao||'—')}</td><td style="min-width:250px"><button class="primary" onclick="qoeValidateCloudReturnV711K('${String(tr.id)}')">Validar atuação</button> <button style="border-color:#b42318;color:#b42318" onclick="qoeReturnCloudTreatmentV711K('${String(tr.id)}')">Devolver para tratamento</button></td></tr>`).join(''):'<tr><td colspan="8">Nenhuma devolutiva pendente de validação.</td></tr>';
 }
 async function qoeValidateCloudReturnV711K(id){
  ensureV7();
  const item=(window.qoePendingReturnsV711K||[]).find(x=>String(x.tr.id)===String(id));
  if(!item)return alert('Devolutiva não localizada. Atualize do Supabase e tente novamente.');
  const {tr,d}=item;
+ let confirmedAction=tr.atuada_em;
+ if(!tr.data_informada){try{confirmedAction=qoeActionIsoK17('legacyActionK17-'+id);}catch(e){return alert('Confirme com o técnico a data real da atuação: '+e.message);}}
  if(!confirm('Validar a atuação de '+(d.tecnico||'técnico')+' na porta '+d.porta+' e iniciar o acompanhamento QoE?'))return;
 
- const {error}=await qoeRpc('gestao_validar_atuacao',{p_demanda_id:d.demanda_id,p_tratativa_id:tr.id});
+ const {data:outcome,error}=await qoeRpc('gestao_validar_atuacao_k17',{p_demanda_id:d.demanda_id,p_tratativa_id:tr.id,p_atuada_em:confirmedAction});
  if(error)return alert('Não foi possível validar a atuação no Supabase: '+error.message);
 
+ if(confirmedAction){tr.atuada_em=confirmedAction;tr.data_informada=true;}
  const x=portfolio.find(z=>z.porta===d.porta)||{};
- const dt=tr.criado_em?new Date(tr.criado_em):new Date();
- const rec={date:dt.toLocaleDateString('pt-BR'),time:dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),porta:d.porta,node:d.node||x.node||'',tech:d.tecnico||'',manager:d.gestor||'',type:tr.tipo||'',returnText:tr.descricao||'',address:tr.endereco||'',obs:tr.observacao||'',before:Number.isFinite(+d.media_30d)?+d.media_30d:(x.m30??null),current:Number.isFinite(+d.nota_atual)?+d.nota_atual:(x.cur??null),active:true,week:d.semana||state.currentWeek,cloudTratativaId:tr.id,cloudDemandaId:d.demanda_id,source:'SUPABASE',validatedAt:new Date().toISOString(),actionAt:tr.criado_em||null,validationDecision:'VALIDADA'};
+ const dt=(tr.atuada_em||tr.criado_em)?new Date(tr.atuada_em||tr.criado_em):new Date();
+ const rec={date:dt.toLocaleDateString('pt-BR'),time:dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),porta:d.porta,node:d.node||x.node||'',tech:d.tecnico||'',manager:d.gestor||'',type:tr.tipo||'',returnText:tr.descricao||'',address:tr.endereco||'',obs:tr.observacao||'',before:Number.isFinite(+d.media_30d)?+d.media_30d:(x.m30??null),current:Number.isFinite(+d.nota_atual)?+d.nota_atual:(x.cur??null),active:true,week:d.semana||state.currentWeek,cloudTratativaId:tr.id,cloudDemandaId:d.demanda_id,source:'SUPABASE',validatedAt:new Date().toISOString(),actionAt:tr.atuada_em||tr.criado_em||null,validationDecision:'VALIDADA'};
  if(!state.history.some(h=>String(h.cloudTratativaId||'')===String(tr.id))){state.history.push(rec);(state.treatmentDetails[d.porta]??=[]).push(rec);}
  state.validatedCloudTratativasV711K=state.validatedCloudTratativasV711K||[];
  if(!state.validatedCloudTratativasV711K.includes(String(tr.id)))state.validatedCloudTratativasV711K.push(String(tr.id));
@@ -891,7 +927,7 @@ async function qoeValidateCloudReturnV711K(id){
  persist();
  await qoeRemoteRefresh();
  rebuild();
- alert('Atuação validada. A porta entrou em acompanhamento QoE; a data da atuação do técnico foi preservada.');
+ alert(outcome?.status==='PENDENTE'?'Atuação validada. Já existe leitura pós-atuação abaixo de 80: a porta retornou ao técnico.':outcome?.status==='ESTABILIZADA'?'Atuação validada. As sete leituras diárias consecutivas já confirmam estabilização.':'Atuação validada. Acompanhamento iniciado na data real da atuação.');
 }
 
 async function qoeReturnCloudTreatmentV711K(id){
@@ -905,8 +941,8 @@ async function qoeReturnCloudTreatmentV711K(id){
  if(error)return alert('Não foi possível devolver a porta para tratamento: '+error.message);
 
  const x=portfolio.find(z=>z.porta===d.porta)||{};
- const dt=tr.criado_em?new Date(tr.criado_em):new Date();
- const rec={date:dt.toLocaleDateString('pt-BR'),time:dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),porta:d.porta,node:d.node||x.node||'',tech:d.tecnico||'',manager:d.gestor||'',type:tr.tipo||'',returnText:tr.descricao||'',address:tr.endereco||'',obs:tr.observacao||'',before:Number.isFinite(+d.media_30d)?+d.media_30d:(x.m30??null),current:Number.isFinite(+d.nota_atual)?+d.nota_atual:(x.cur??null),active:false,week:d.semana||state.currentWeek,cloudTratativaId:tr.id,cloudDemandaId:d.demanda_id,source:'SUPABASE',actionAt:tr.criado_em||null,validationDecision:'DEVOLVIDA_TRATAMENTO'};
+ const dt=(tr.atuada_em||tr.criado_em)?new Date(tr.atuada_em||tr.criado_em):new Date();
+ const rec={date:dt.toLocaleDateString('pt-BR'),time:dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),porta:d.porta,node:d.node||x.node||'',tech:d.tecnico||'',manager:d.gestor||'',type:tr.tipo||'',returnText:tr.descricao||'',address:tr.endereco||'',obs:tr.observacao||'',before:Number.isFinite(+d.media_30d)?+d.media_30d:(x.m30??null),current:Number.isFinite(+d.nota_atual)?+d.nota_atual:(x.cur??null),active:false,week:d.semana||state.currentWeek,cloudTratativaId:tr.id,cloudDemandaId:d.demanda_id,source:'SUPABASE',actionAt:tr.atuada_em||tr.criado_em||null,validationDecision:'DEVOLVIDA_TRATAMENTO'};
  if(!state.history.some(h=>String(h.cloudTratativaId||'')===String(tr.id))){state.history.push(rec);(state.treatmentDetails[d.porta]??=[]).push(rec);}
  persist();
  await qoeRemoteRefresh();
@@ -962,14 +998,14 @@ async function unzipXlsx(buf){
  let n=dv.getUint16(e+10,true),off=dv.getUint32(e+16,true),files={};
  for(let j=0;j<n;j++){if(dv.getUint32(off,true)!==0x02014b50)break;let method=dv.getUint16(off+10,true),cs=dv.getUint32(off+20,true),nl=dv.getUint16(off+28,true),el=dv.getUint16(off+30,true),cl=dv.getUint16(off+32,true),lo=dv.getUint32(off+42,true),name=new TextDecoder().decode(u.slice(off+46,off+46+nl));let lnl=dv.getUint16(lo+26,true),lel=dv.getUint16(lo+28,true),start=lo+30+lnl+lel,data=u.slice(start,start+cs);if(method===8){let ds=new DecompressionStream('deflate-raw'),ab=await new Response(new Blob([data]).stream().pipeThrough(ds)).arrayBuffer();data=new Uint8Array(ab)}files[name]=new TextDecoder().decode(data);off+=46+nl+el+cl}return files
 }
-function cellText(c,shared){let t=c.getAttribute('t');if(t==='inlineStr')return c.querySelector('is t')?.textContent||'';let v=c.querySelector('v')?.textContent;if(v==null)return null;if(t==='s')return shared[+v];let n=+v;return Number.isFinite(n)?n:v}
+function cellText(c,shared){let t=c.getAttribute('t');if(t==='inlineStr')return qoeXmlTagsK17(c,'t').map(x=>x.textContent).join('');let v=qoeXmlTagsK17(c,'v')[0]?.textContent;if(v==null)return null;if(t==='s')return shared[+v];let n=+v;return Number.isFinite(n)?n:v}
 async function parseUploaded(file){
  let files=await unzipXlsx(await file.arrayBuffer()),shared=[];
  if(files['xl/sharedStrings.xml']){
    let d=new DOMParser().parseFromString(files['xl/sharedStrings.xml'],'text/xml');
-   shared=[...d.querySelectorAll('si')].map(si=>[...si.querySelectorAll('t')].map(t=>t.textContent).join(''))
+   shared=qoeXmlTagsK17(d,'si').map(si=>qoeXmlTagsK17(si,'t').map(t=>t.textContent).join(''))
  }
- const cells=row=>[...row.querySelectorAll('c')];
+ const cells=row=>qoeXmlTagsK17(row,'c');
  const cv=(row,idx)=>{let c=cells(row)[idx];return c?cellText(c,shared):null};
  const port=s=>{
    if(typeof s!=='string')return null;
@@ -979,7 +1015,7 @@ async function parseUploaded(file){
  };
  let out={},sheets=Object.keys(files).filter(n=>/^xl\/worksheets\/sheet\d+\.xml$/i.test(n)).sort();
  for(const sn of sheets){
-   let d=new DOMParser().parseFromString(files[sn],'text/xml'),rows=[...d.querySelectorAll('sheetData row')];
+   let d=new DOMParser().parseFromString(files[sn],'text/xml'),rows=qoeXmlTagsK17(d,'row');
    if(rows.length<3)continue;
    // The real export omits Excel cell references (r="A1", r="B1" etc.).
    // Therefore columns are read by physical cell position, exactly as stored in the file.
@@ -996,7 +1032,7 @@ async function parseUploaded(file){
      let p=port(cellText(cs[0],shared));if(!p)continue;
      let scores={};
      for(const [idx,day] of Object.entries(dayIndexes)){
-       let c=cs[+idx],n=c?Number(cellText(c,shared)):NaN;
+       let c=cs[+idx],raw=c?String(cellText(c,shared)).trim():'',n=raw!==''?Number(raw):NaN;
        if(Number.isFinite(n))scores[day]=n;
      }
      if(Object.keys(scores).length)out[p]=[p.replace(/-\d+$/,''),scores];
@@ -1005,11 +1041,13 @@ async function parseUploaded(file){
  return out
 }
 async function updateDaily(){
- let f=dailyFile.files[0];if(!f)return alert('Selecione o Excel de outubro.');
+ let f=dailyFile.files[0];if(!f)return alert('Selecione o Excel diário e informe o mês.');
+ const selectedMonth=qoeMonthK17();if(!confirm('Importar este Excel como '+selectedMonth+'? Confira o mês antes de continuar.'))return;
  updateMsg.innerText='Lendo arquivo...';
  try{
    let next=await parseUploaded(f);
    if(!Object.keys(next).length)throw Error('Nenhuma porta HFC com notas diárias foi identificada no arquivo.');
+   qoeMonthK17();qoePortasResumoK17=null;
    OCT=next;localStorage.setItem('qoe_v700_oct',JSON.stringify(OCT));rebuild();
    let days=[...new Set(Object.values(OCT).flatMap(x=>Object.keys(x[1]).map(Number)))];
    updateMsg.innerText='Atualizado até dia '+Math.max(...days)+' • '+Object.keys(OCT).length+' portas lidas';
@@ -1017,7 +1055,7 @@ async function updateDaily(){
    // K15: a base diária passa a ser compartilhada no Supabase.
    if(await qoeCheckSession()){
      updateMsg.innerText+=' • salvando base online...';
-     await qoeSaveDailySnapshotV711K15(Math.max(...days));
+     await qoeSaveDailySnapshotV711K15(Math.max(...days),selectedMonth);
      const r=await qoeProcessMonitoringFromDailyV711K13();
      await qoeRemoteRefresh();
      updateMsg.innerText='Atualizado online até dia '+Math.max(...days)+' • '+Object.keys(OCT).length+' portas lidas';
@@ -1038,7 +1076,7 @@ let savedOct=localStorage.getItem('qoe_v700_oct');if(savedOct){try{OCT=JSON.pars
 <h3>Registrar tratativa</h3><div id="treatPortV7" class="v7-sub"></div>
 <div class="v7-grid"><div class="v7-field"><label>Gestor demandante</label><select id="managerV7"><option value="">Selecione...</option><option>Ayrã</option><option>Adair</option><option>Claudionei</option><option>Raphael Castro</option><option>Rodrigo Torres</option></select></div>
 <div class="v7-field"><label>Tipo de atuação</label><select id="actionTypeV7"><option value="">Selecione...</option><option>Manutenção Coaxial</option><option>MDU</option><option>Indoor</option><option>Sem oportunidade</option><option>Necessita apoio</option><option>Outro</option></select></div></div>
-<div class="v7-field"><label>O que foi feito / devolutiva</label><textarea id="returnV7" placeholder="Descreva a atuação realizada ou a devolutiva recebida do técnico."></textarea></div>
+<div class="v7-field"><label>Data/hora da atuação (Brasília)</label><input type="datetime-local" id="actionAtK17" required><label>O que foi feito / devolutiva</label><textarea id="returnV7" placeholder="Descreva a atuação realizada ou a devolutiva recebida do técnico."></textarea></div>
 <div class="v7-field"><label>Endereço ofensor (quando aplicável)</label><input id="addressV7" placeholder="Rua, número, condomínio/local..."></div>
 <div class="v7-field"><label>Observação</label><textarea id="obsV7" placeholder="Informações adicionais."></textarea></div>
 <div class="v7-actions"><button onclick="closeTreatV7()">Cancelar</button><button class="primary" onclick="confirmTreatV7()">Salvar e enviar para acompanhamento</button></div>
@@ -1080,10 +1118,10 @@ async function qoeSyncPortfolio(){
 /* V7.11.1K15 — base QoE diária compartilhada.
    Supabase é a fonte oficial; localStorage permanece somente como cache/fallback. */
 let qoeDailyCloudVersionV711K15='';
-async function qoeSaveDailySnapshotV711K15(ultimoDia){
+async function qoeSaveDailySnapshotV711K15(ultimoDia,mes=qoeMonthK17()){
  if(!qoeCloudReady)throw new Error('Gestão não autenticada');
- const payload={mes:'2026-10',ultimo_dia:Number(ultimoDia||0),oct:OCT};
- const {data,error}=await qoeRpc('gestao_salvar_base_diaria',{p_payload:payload});
+ const payload={mes,ultimo_dia:Number(ultimoDia||0),oct:OCT};
+ const {data,error}=await qoeRpc('gestao_salvar_base_diaria_k17',{p_payload:payload});
  if(error)throw error;
  if(data?.atualizado_em)qoeDailyCloudVersionV711K15=String(data.atualizado_em);
  return data;
@@ -1101,6 +1139,7 @@ async function qoeLoadDailySnapshotV711K15(){
  if(version&&version===qoeDailyCloudVersionV711K15)return false;
  const payload=snap.dados;
  const cloudOct=payload?.oct;
+ if(document.getElementById('reportMonthK17'))document.getElementById('reportMonthK17').value=payload.mes||'';
  if(!cloudOct||typeof cloudOct!=='object'||!Object.keys(cloudOct).length)return false;
  OCT=cloudOct;
  localStorage.setItem('qoe_v700_oct',JSON.stringify(OCT));
@@ -1117,43 +1156,26 @@ async function qoeLoadDailySnapshotV711K15(){
 
 async function qoeProcessMonitoringFromDailyV711K13(){
  if(!await qoeCheckSession())return {processed:0};
- const {data,error}=await qoeRpc('gestao_snapshot');
- if(error)throw error;
- const demands=Array.isArray(data?.demandas)?data.demandas:[];
- const trs=Array.isArray(data?.tratativas)?data.tratativas:[];
- let processed=0;
- for(const d of demands.filter(x=>String(x.status||'').toUpperCase()==='MONITORAMENTO')){
-   const tr=trs.filter(x=>String(x.demanda_id||'')===String(d.demanda_id||''))
-     .sort((a,b)=>new Date(b.criado_em||0)-new Date(a.criado_em||0))[0];
-   if(!tr||!d.porta||!OCT?.[d.porta]?.[1])continue;
-
-   const dt=new Date(tr.criado_em);
-   const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(dt);
-   const get=t=>Number(parts.find(x=>x.type===t)?.value);
-   const y=get('year'),m=get('month'),actionDay=get('day');
-   if(y!==2026||m!==10)continue;
-
-   const leituras=Object.entries(OCT[d.porta][1])
-     .map(([day,nota])=>({day:Number(day),nota:Number(nota)}))
-     .filter(x=>Number.isFinite(x.day)&&Number.isFinite(x.nota)&&x.day>actionDay)
-     .sort((a,b)=>a.day-b.day)
-     .map(x=>({data:`2026-10-${String(x.day).padStart(2,'0')}`,nota:x.nota}));
-
-   if(!leituras.length)continue;
-   const r=await qoeRpc('gestao_processar_monitoramento',{p_demanda_id:d.demanda_id,p_leituras:leituras});
-   if(r.error)throw r.error;
-   processed++;
- }
- return {processed};
+ // A RPC consulta leituras históricas reais e processa os monitoramentos antes do snapshot.
+ const {data,error}=await qoeRpc('gestao_snapshot_k17');if(error)throw error;
+ return {processed:Array.isArray(data?.demandas)?data.demandas.length:0};
 }
 
 async function qoeRemoteRefresh(){
  if(!await qoeCheckSession())return;
  // K15: antes de montar carteira/indicadores, busca a última base diária oficial.
  await qoeLoadDailySnapshotV711K15();
- const {data,error}=await qoeRpc('gestao_snapshot');
+ let {data,error}=await qoeRpc('gestao_snapshot_k17');
+ if(!error&&data&&!data.meses?.includes('2026-09')){
+   const legacy={mes:'2026-09',oct:Object.fromEntries(Object.entries(SEP).map(([p,v])=>[p,[v[0],Object.fromEntries(v[1].map((n,i)=>[String(i+1),n]))]]))};
+   const imported=await qoeRpc('gestao_importar_legado_k17',{p_payload:legacy});
+   if(imported.error)return alert('Não foi possível preservar a base fechada de setembro: '+imported.error.message);
+   ({data,error}=await qoeRpc('gestao_snapshot_k17'));
+ }
+
  if(error)return alert('Não foi possível ler o banco: '+error.message);
  if(data&&Array.isArray(data.demandas)){
+   qoePortasResumoK17=data.resumo_portas||null;
    ensureV7();
    state.assign={};
    const demandasPorId={};
@@ -1172,7 +1194,7 @@ async function qoeRemoteRefresh(){
 
    // Somente demandas ainda pendentes/recorrentes permanecem na carteira de tratamento.
    data.demandas.filter(d=>['PENDENTE','RECORRENTE'].includes(d.status)).forEach(d=>{
-     if(d.porta&&d.tecnico)state.assign[d.porta]=d.tecnico;
+     if(d.porta&&d.tecnico&&!d.observacao_pre_atuacao)state.assign[d.porta]=d.tecnico;
    });
 
    // V7.11.1K4 — a situação do BANCO é a fonte de verdade da caixa de validação.
@@ -1258,8 +1280,9 @@ removeAlloc=async function(p){
 const _qoeConfirmTreat=confirmTreatV7;
 confirmTreatV7=async function(){
  const p=treatTargetV7,manager=managerV7.value,type=actionTypeV7.value,ret=returnV7.value.trim(),addr=addressV7.value.trim(),obs=obsV7.value.trim();
+ let actedK17;try{actedK17=qoeActionIsoK17('actionAtK17');}catch(e){return alert(e.message);}
  if(qoeCloudReady&&p&&manager&&type&&ret){
-   const {error}=await qoeRpc('gestao_registrar_tratativa',{p_porta:p,p_gestor_nome:manager,p_tipo:type,p_descricao:ret,p_endereco:addr||null,p_observacao:obs||null});
+   const {error}=await qoeRpc('gestao_registrar_tratativa_k17',{p_atuada_em:actedK17,p_porta:p,p_gestor_nome:manager,p_tipo:type,p_descricao:ret,p_endereco:addr||null,p_observacao:obs||null});
    if(error)return alert('Não foi possível salvar no Supabase: '+error.message);
  }
  _qoeConfirmTreat();
@@ -1543,7 +1566,7 @@ document.addEventListener('DOMContentLoaded',()=>{updateExecutiveV794();
       if(!tr)return;
       out.push({
         porta:d.porta,node:d.node,tech:d.tecnico,
-        date:tr.criado_em,atuacao_em:tr.criado_em,
+        date:tr.atuada_em||tr.criado_em,atuacao_em:tr.atuada_em||tr.criado_em,sequencia:tr.sequencia,leituras_pos:tr.leituras_pos,data_informada:tr.data_informada,
         type:tr.tipo,returnText:tr.descricao,
         address:tr.endereco,obs:tr.observacao,
         before:d.media_30d,current:d.nota_atual,
@@ -1594,16 +1617,7 @@ document.addEventListener('DOMContentLoaded',()=>{updateExecutiveV794();
   function readingsAfterAction(p, action){
     // K13: usa os dias reais do relatório diário (OCT), nunca a posição da leitura recente.
     // Como o relatório não tem horário da leitura, o próprio dia da atuação é excluído.
-    const ap=qoeLocalActionDatePartsV711K13(action.when);
-    const row=(typeof OCT==='object'&&OCT&&OCT[action.porta])?OCT[action.porta][1]:null;
-    if(!ap||!row)return [];
-    // A base atual é o relatório de outubro/2026.
-    if(ap.year!==2026||ap.month!==10)return [];
-    return Object.entries(row)
-      .map(([day,val])=>({day:Number(day),v:num(val)}))
-      .filter(x=>Number.isFinite(x.day)&&x.v!==null&&x.day>ap.day)
-      .sort((a,b)=>a.day-b.day)
-      .map(x=>x.v);
+    return Array.isArray(action.raw?.leituras_pos)?action.raw.leituras_pos.map(x=>num(x.nota)).filter(v=>v!==null):[];
   }
 
   function evaluate(vals){
@@ -1629,6 +1643,7 @@ document.addEventListener('DOMContentLoaded',()=>{updateExecutiveV794();
       if(!st && Object.keys(cloudStatus).length) return;
       const p=pm.get(a.porta)||{};
       const ev=evaluate(readingsAfterAction(p,a));
+      if(Number.isInteger(a.raw?.sequencia))ev.consecutive=a.raw.sequencia;
       // Enquanto a demanda estiver MONITORAMENTO no banco, permanece nesta visão.
       // A automação de retorno/estabilização será tratada em etapa própria.
       if(st==='MONITORAMENTO' && ev.state!=='ACOMPANHAMENTO'){
@@ -1653,7 +1668,7 @@ document.addEventListener('DOMContentLoaded',()=>{updateExecutiveV794();
       const seq=x.ev.vals.length?x.ev.vals.map(v=>Number(v).toFixed(0)).join(' → '):'Aguardando leitura pós-atuação';
       return `<tr>
         <td><b>${x.porta}</b></td><td>${x.node||'-'}</td><td>${x.tech||'-'}</td>
-        <td>${fmtDate(x.when)}</td>
+        <td>${fmtDate(x.when)}${x.raw?.data_informada===false?`<small>Data real a conferir com o técnico</small><input type="datetime-local" id="monitorActualK17-${x.raw.cloudTratativaId}"><button onclick="qoeConfirmMonitorDateK17('${x.raw.cloudTratativaId}')">Confirmar data real</button>`:''}</td>
         <td>${Number.isFinite(+x.before)?Math.round(+x.before):'-'}</td>
         <td>${Number.isFinite(+x.p.cur)?Math.round(+x.p.cur):(Number.isFinite(+x.current)?Math.round(+x.current):'-')}</td>
         <td class="v710-seq">${seq}</td>
@@ -2018,3 +2033,4 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')qoeCloseFlowV711C()}
 })();
 </script>
 </body></html>
+
