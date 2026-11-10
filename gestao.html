@@ -193,7 +193,7 @@ tbody tr:last-child td{border-bottom:0!important}
 <meta property="og:description" content="Tratamento e Acompanhamento de Rede">
 
 </head><body>
-<header><h1>QOE HFC — Tratamento e Acompanhamento</h1><div class="sub">Porto Alegre • V7.11.1K17.1 • Fluxo e execução semanal — em homologação</div></header>
+<header><h1>QOE HFC — Tratamento e Acompanhamento</h1><div class="sub">Porto Alegre • V7.11.1K17.2 • Fluxo e execução semanal — em homologação</div></header>
 
 <div class="qoe-nav-shell">
   <nav class="qoe-nav" aria-label="Navegação do painel">
@@ -492,10 +492,9 @@ function qoeXmlTagsK17(parent,name){return [...parent.getElementsByTagNameNS('*'
 function qoeLocalInputK17(){return new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date()).replace(' ','T');}
 function qoeActionIsoK17(id){const v=document.getElementById(id)?.value;if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v||''))throw Error('Informe a data e hora da atuação.');const d=new Date(v+'-03:00');if(!Number.isFinite(+d)||d>new Date())throw Error('Data/hora inválida ou futura.');return d.toISOString();}
 async function qoeConfirmMonitorDateK17(id){
- let date;try{date=qoeActionIsoK17('monitorActualK17-'+id);}catch(e){return alert(e.message);}
- const {data,error}=await qoeRpc('gestao_confirmar_data_atuacao_k17',{p_tratativa_id:id,p_atuada_em:date});
- if(error)return alert('Data não confirmada: '+error.message);
- await qoeRemoteRefresh();alert(data?.status==='PENDENTE'?'Data confirmada. Leitura pós-atuação abaixo de 80: porta devolvida ao técnico.':data?.status==='ESTABILIZADA'?'Data confirmada. Sete dias reais consecutivos confirmam estabilização.':'Data confirmada. Acompanhamento continua com as leituras reais disponíveis.');
+ const {error}=await qoeRpc('gestao_confirmar_data_atuacao_k17',{p_tratativa_id:id,p_atuada_em:null});
+ if(error)return alert('Não foi possível processar: '+error.message);
+ await qoeRemoteRefresh();
 }
 function qoeMonthK17(){const value=document.getElementById('reportMonthK17')?.value;if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(value||''))throw Error('Selecione o mês do relatório.');return value;}
 async function qoeReportLoadK17(){
@@ -508,11 +507,11 @@ async function qoeReportLoadK17(){
  qoeReportK17=data;
  const rows=data.tecnicos||[];
  document.getElementById('techReportNoteK17').textContent='Semana '+data.semana+' • resultados das atuações desta semana, atualizados após o fechamento. Assertividade = estabilizadas ÷ (estabilizadas + retornos). Casos em acompanhamento não entram no denominador.';
- panel.innerHTML=rows.map((t,i)=>`<tr${t.sem_atuacao?' style="background:#fff1f2"':''}><td><b>${escV78(t.tecnico)}</b><br><small>${t.sem_atuacao?'SEM ATUAÇÃO REAL NA SEMANA':t.aguardando_validacao?'Há devolutivas aguardando a Gestão':'Execução registrada ou sem pendência de atuação'}</small>${t.datas_legadas?'<br><small>Há datas legadas de registro; data real não informada.</small>':''}</td><td>${t.herdadas}</td><td>${t.novas}</td><td>${t.recebidas}</td><td>${t.atuadas}<br><small>${t.devolutivas} devolutivas</small></td><td>${t.aguardando_validacao}</td><td>${t.validadas}</td><td>${t.estabilizadas}</td><td>${t.retornos}</td><td>${t.acompanhamento}</td><td>${t.pendentes}</td><td>${t.assertividade==null?'Aguardando resultado':t.assertividade+'%'}${t.acompanhamento||t.aguardando_validacao?'<br><small>Parcial</small>':''}</td><td><button onclick="qoeCopyChargeK17(${i})">Copiar cobrança</button></td></tr>`).join('');
+ panel.innerHTML=rows.map((t,i)=>`<tr${t.sem_atuacao?' style="background:#fff1f2"':''}><td><b>${escV78(t.tecnico)}</b><br><small>${t.sem_atuacao?'SEM ATUAÇÃO REAL NA SEMANA':t.aguardando_validacao?'Há devolutivas aguardando a Gestão':'Execução registrada ou sem pendência de atuação'}</small>${t.datas_legadas?'<br><small>Referência: data do registro no Portal.</small>':''}</td><td>${t.herdadas}</td><td>${t.novas}</td><td>${t.recebidas}</td><td>${t.atuadas}<br><small>${t.devolutivas} devolutivas</small></td><td>${t.aguardando_validacao}</td><td>${t.validadas}</td><td>${t.estabilizadas}</td><td>${t.retornos}</td><td>${t.acompanhamento}</td><td>${t.pendentes}</td><td>${t.assertividade==null?'Aguardando resultado':t.assertividade+'%'}${t.acompanhamento||t.aguardando_validacao?'<br><small>Parcial</small>':''}</td><td><button onclick="qoeCopyChargeK17(${i})">Copiar cobrança</button></td></tr>`).join('');
 }
 async function qoeCopyChargeK17(i){
  const t=qoeReportK17?.tecnicos?.[i];if(!t)return;
- const message=`Olá, ${t.tecnico}. Segue o acompanhamento QoE da semana ${qoeReportK17.semana}.\n\nPendências herdadas: ${t.herdadas}\nNovas recebidas: ${t.novas}\nPortas com atuação real na semana: ${t.atuadas}\nDevolutivas aguardando validação da Gestão: ${t.aguardando_validacao}\nPendentes de atuação: ${t.pendentes}\n\n${t.sem_atuacao?'Não identificamos atuação real registrada para esta semana. Precisamos avançar nas portas pendentes.':'Precisamos avançar nas pendências abaixo.'}\n${(t.portas_pendentes||[]).join(', ')||'Sem porta pendente de atuação.'}\n\nRegistre a data real da atuação e a devolutiva no Portal. Se houver impedimento ou necessidade de apoio, sinalize à Gestão.`;
+ const message=`Olá, ${t.tecnico}. Segue o acompanhamento QoE da semana ${qoeReportK17.semana}.\n\nPendências herdadas: ${t.herdadas}\nNovas recebidas: ${t.novas}\nPortas com atuação real na semana: ${t.atuadas}\nDevolutivas aguardando validação da Gestão: ${t.aguardando_validacao}\nPendentes de atuação: ${t.pendentes}\n\n${t.sem_atuacao?'Não identificamos atuação real registrada para esta semana. Precisamos avançar nas portas pendentes.':'Precisamos avançar nas pendências abaixo.'}\n${(t.portas_pendentes||[]).join(', ')||'Sem porta pendente de atuação.'}\n\nRegistre a atuação e a devolutiva no Portal. A data/hora do envio inicia o acompanhamento. Se houver impedimento ou necessidade de apoio, sinalize à Gestão.`;
  try{await navigator.clipboard.writeText(message);alert('Mensagem copiada.');}catch{prompt('Copie a mensagem:',message);}
 }
 
@@ -854,7 +853,7 @@ async function copyText(){
 const MANAGERS_V7=['Ayrã','Adair','Claudionei','Raphael Castro','Rodrigo Torres'];
 let treatTargetV7=null;
 function ensureV7(){state.demandManager=state.demandManager||{};state.treatmentDetails=state.treatmentDetails||{};state.secondaryQueue=state.secondaryQueue||[];}
-function openTreatV7(p){ensureV7();treatTargetV7=p;const x=portfolio.find(z=>z.porta===p)||{};treatPortV7.innerHTML='<b>'+p+'</b>'+(x.node?' • '+x.node:'')+(state.assign[p]?' • Técnico: '+state.assign[p]:'');managerV7.value=state.demandManager[p]||'';actionTypeV7.value='';returnV7.value='';addressV7.value='';obsV7.value='';document.getElementById('actionAtK17').value=qoeLocalInputK17();treatModalV7.classList.add('open');}
+function openTreatV7(p){ensureV7();treatTargetV7=p;const x=portfolio.find(z=>z.porta===p)||{};treatPortV7.innerHTML='<b>'+p+'</b>'+(x.node?' • '+x.node:'')+(state.assign[p]?' • Técnico: '+state.assign[p]:'');managerV7.value=state.demandManager[p]||'';actionTypeV7.value='';returnV7.value='';addressV7.value='';obsV7.value='';treatModalV7.classList.add('open');}
 function closeTreatV7(){treatModalV7.classList.remove('open');treatTargetV7=null;}
 function confirmTreatV7(){ensureV7();const p=treatTargetV7;if(!p)return;const manager=managerV7.value,type=actionTypeV7.value,ret=returnV7.value.trim(),addr=addressV7.value.trim(),obs=obsV7.value.trim();if(!manager)return alert('Selecione o gestor demandante.');if(!type)return alert('Selecione o tipo de atuação.');if(!ret)return alert('Informe o que foi feito ou a devolutiva.');if((type==='MDU'||type==='Indoor')&&!addr)return alert('Informe o endereço ofensor.');const x=portfolio.find(z=>z.porta===p)||{},tech=state.assign[p]||'';state.demandManager[p]=manager;const d={date:new Date().toLocaleDateString('pt-BR'),time:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),porta:p,node:x.node||'',tech,manager,type,returnText:ret,address:addr,obs,before:x.m30,current:x.cur};(state.treatmentDetails[p]??=[]).push(d);if(type==='MDU'||type==='Indoor')state.secondaryQueue.push({...d,status:'Nova demanda'});state.history.push({date:d.date,time:d.time,porta:p,node:x.node,tech,before:x.m30,current:x.cur,active:true,week:state.currentWeek,manager,type,returnText:ret,address:addr,obs});if(state.weeklyLedger&&state.weeklyLedger.received&&state.weeklyLedger.received[tech]){state.weeklyLedger.treated[tech]=state.weeklyLedger.treated[tech]||[];if(!state.weeklyLedger.treated[tech].includes(p))state.weeklyLedger.treated[tech].push(p);}delete state.assign[p];persist();closeTreatV7();rebuild();alert(type==='MDU'||type==='Indoor'?'Tratativa salva e demanda '+type+' criada.':'Tratativa salva e porta enviada para acompanhamento.');}
 
@@ -898,15 +897,14 @@ function qoeFmtCloudDateV711K(v){try{const d=new Date(v);return d.toLocaleDateSt
 function renderPendingReturnsV711K(){
  const el=document.getElementById('pendingReturnsV711K'),ct=document.getElementById('pendingReturnsCountV711K'); if(!el)return;
  const rows=window.qoePendingReturnsV711K||[]; if(ct)ct.textContent=rows.length?'('+rows.length+')':'';
- el.innerHTML=rows.length?rows.map(({tr,d})=>`<tr><td>${escV78(qoeFmtCloudDateV711K(tr.atuada_em||tr.criado_em)+(tr.data_informada?'':' (data legada de registro)'))}${!tr.data_informada?'<label>Data/hora real conferida com o técnico</label><input type="datetime-local" id="legacyActionK17-'+tr.id+'">':''}</td><td>${escV78(d.tecnico||'—')}</td><td><b>${escV78(d.porta)}</b></td><td>${escV78(String(tr.tipo||'').replaceAll('_',' '))}</td><td style="min-width:240px">${escV78(tr.descricao||'—')}</td><td>${escV78(tr.endereco||'—')}</td><td>${escV78(tr.observacao||'—')}</td><td style="min-width:250px"><button class="primary" onclick="qoeValidateCloudReturnV711K('${String(tr.id)}')">Validar atuação</button> <button style="border-color:#b42318;color:#b42318" onclick="qoeReturnCloudTreatmentV711K('${String(tr.id)}')">Devolver para tratamento</button></td></tr>`).join(''):'<tr><td colspan="8">Nenhuma devolutiva pendente de validação.</td></tr>';
+ el.innerHTML=rows.length?rows.map(({tr,d})=>`<tr><td>${escV78(qoeFmtCloudDateV711K(tr.criado_em||tr.atuada_em)+(tr.data_informada?'':' (data legada de registro)'))}</td><td>${escV78(d.tecnico||'—')}</td><td><b>${escV78(d.porta)}</b></td><td>${escV78(String(tr.tipo||'').replaceAll('_',' '))}</td><td style="min-width:240px">${escV78(tr.descricao||'—')}</td><td>${escV78(tr.endereco||'—')}</td><td>${escV78(tr.observacao||'—')}</td><td style="min-width:250px"><button class="primary" onclick="qoeValidateCloudReturnV711K('${String(tr.id)}')">Validar atuação</button> <button style="border-color:#b42318;color:#b42318" onclick="qoeReturnCloudTreatmentV711K('${String(tr.id)}')">Devolver para tratamento</button></td></tr>`).join(''):'<tr><td colspan="8">Nenhuma devolutiva pendente de validação.</td></tr>';
 }
 async function qoeValidateCloudReturnV711K(id){
  ensureV7();
  const item=(window.qoePendingReturnsV711K||[]).find(x=>String(x.tr.id)===String(id));
  if(!item)return alert('Devolutiva não localizada. Atualize do Supabase e tente novamente.');
  const {tr,d}=item;
- let confirmedAction=tr.atuada_em;
- if(!tr.data_informada){try{confirmedAction=qoeActionIsoK17('legacyActionK17-'+id);}catch(e){return alert('Confirme com o técnico a data real da atuação: '+e.message);}}
+ const confirmedAction=tr.criado_em;
  if(!confirm('Validar a atuação de '+(d.tecnico||'técnico')+' na porta '+d.porta+' e iniciar o acompanhamento QoE?'))return;
 
  const {data:outcome,error}=await qoeRpc('gestao_validar_atuacao_k17',{p_demanda_id:d.demanda_id,p_tratativa_id:tr.id,p_atuada_em:confirmedAction});
@@ -914,8 +912,8 @@ async function qoeValidateCloudReturnV711K(id){
 
  if(confirmedAction){tr.atuada_em=confirmedAction;tr.data_informada=true;}
  const x=portfolio.find(z=>z.porta===d.porta)||{};
- const dt=(tr.atuada_em||tr.criado_em)?new Date(tr.atuada_em||tr.criado_em):new Date();
- const rec={date:dt.toLocaleDateString('pt-BR'),time:dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),porta:d.porta,node:d.node||x.node||'',tech:d.tecnico||'',manager:d.gestor||'',type:tr.tipo||'',returnText:tr.descricao||'',address:tr.endereco||'',obs:tr.observacao||'',before:Number.isFinite(+d.media_30d)?+d.media_30d:(x.m30??null),current:Number.isFinite(+d.nota_atual)?+d.nota_atual:(x.cur??null),active:true,week:d.semana||state.currentWeek,cloudTratativaId:tr.id,cloudDemandaId:d.demanda_id,source:'SUPABASE',validatedAt:new Date().toISOString(),actionAt:tr.atuada_em||tr.criado_em||null,validationDecision:'VALIDADA'};
+ const dt=(tr.criado_em||tr.atuada_em)?new Date(tr.criado_em||tr.atuada_em):new Date();
+ const rec={date:dt.toLocaleDateString('pt-BR'),time:dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),porta:d.porta,node:d.node||x.node||'',tech:d.tecnico||'',manager:d.gestor||'',type:tr.tipo||'',returnText:tr.descricao||'',address:tr.endereco||'',obs:tr.observacao||'',before:Number.isFinite(+d.media_30d)?+d.media_30d:(x.m30??null),current:Number.isFinite(+d.nota_atual)?+d.nota_atual:(x.cur??null),active:true,week:d.semana||state.currentWeek,cloudTratativaId:tr.id,cloudDemandaId:d.demanda_id,source:'SUPABASE',validatedAt:new Date().toISOString(),actionAt:tr.criado_em||tr.atuada_em||null,validationDecision:'VALIDADA'};
  if(!state.history.some(h=>String(h.cloudTratativaId||'')===String(tr.id))){state.history.push(rec);(state.treatmentDetails[d.porta]??=[]).push(rec);}
  state.validatedCloudTratativasV711K=state.validatedCloudTratativasV711K||[];
  if(!state.validatedCloudTratativasV711K.includes(String(tr.id)))state.validatedCloudTratativasV711K.push(String(tr.id));
@@ -927,7 +925,7 @@ async function qoeValidateCloudReturnV711K(id){
  persist();
  await qoeRemoteRefresh();
  rebuild();
- alert(outcome?.status==='PENDENTE'?'Atuação validada. Já existe leitura pós-atuação abaixo de 80: a porta retornou ao técnico.':outcome?.status==='ESTABILIZADA'?'Atuação validada. As sete leituras diárias consecutivas já confirmam estabilização.':'Atuação validada. Acompanhamento iniciado na data real da atuação.');
+ alert(outcome?.status==='PENDENTE'?'Atuação validada. Já existe leitura pós-atuação abaixo de 80: a porta retornou ao técnico.':outcome?.status==='ESTABILIZADA'?'Atuação validada. As sete leituras diárias consecutivas já confirmam estabilização.':'Atuação validada. Acompanhamento iniciado na data do registro no Portal.');
 }
 
 async function qoeReturnCloudTreatmentV711K(id){
@@ -941,8 +939,8 @@ async function qoeReturnCloudTreatmentV711K(id){
  if(error)return alert('Não foi possível devolver a porta para tratamento: '+error.message);
 
  const x=portfolio.find(z=>z.porta===d.porta)||{};
- const dt=(tr.atuada_em||tr.criado_em)?new Date(tr.atuada_em||tr.criado_em):new Date();
- const rec={date:dt.toLocaleDateString('pt-BR'),time:dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),porta:d.porta,node:d.node||x.node||'',tech:d.tecnico||'',manager:d.gestor||'',type:tr.tipo||'',returnText:tr.descricao||'',address:tr.endereco||'',obs:tr.observacao||'',before:Number.isFinite(+d.media_30d)?+d.media_30d:(x.m30??null),current:Number.isFinite(+d.nota_atual)?+d.nota_atual:(x.cur??null),active:false,week:d.semana||state.currentWeek,cloudTratativaId:tr.id,cloudDemandaId:d.demanda_id,source:'SUPABASE',actionAt:tr.atuada_em||tr.criado_em||null,validationDecision:'DEVOLVIDA_TRATAMENTO'};
+ const dt=(tr.criado_em||tr.atuada_em)?new Date(tr.criado_em||tr.atuada_em):new Date();
+ const rec={date:dt.toLocaleDateString('pt-BR'),time:dt.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),porta:d.porta,node:d.node||x.node||'',tech:d.tecnico||'',manager:d.gestor||'',type:tr.tipo||'',returnText:tr.descricao||'',address:tr.endereco||'',obs:tr.observacao||'',before:Number.isFinite(+d.media_30d)?+d.media_30d:(x.m30??null),current:Number.isFinite(+d.nota_atual)?+d.nota_atual:(x.cur??null),active:false,week:d.semana||state.currentWeek,cloudTratativaId:tr.id,cloudDemandaId:d.demanda_id,source:'SUPABASE',actionAt:tr.criado_em||tr.atuada_em||null,validationDecision:'DEVOLVIDA_TRATAMENTO'};
  if(!state.history.some(h=>String(h.cloudTratativaId||'')===String(tr.id))){state.history.push(rec);(state.treatmentDetails[d.porta]??=[]).push(rec);}
  persist();
  await qoeRemoteRefresh();
@@ -1076,7 +1074,7 @@ let savedOct=localStorage.getItem('qoe_v700_oct');if(savedOct){try{OCT=JSON.pars
 <h3>Registrar tratativa</h3><div id="treatPortV7" class="v7-sub"></div>
 <div class="v7-grid"><div class="v7-field"><label>Gestor demandante</label><select id="managerV7"><option value="">Selecione...</option><option>Ayrã</option><option>Adair</option><option>Claudionei</option><option>Raphael Castro</option><option>Rodrigo Torres</option></select></div>
 <div class="v7-field"><label>Tipo de atuação</label><select id="actionTypeV7"><option value="">Selecione...</option><option>Manutenção Coaxial</option><option>MDU</option><option>Indoor</option><option>Sem oportunidade</option><option>Necessita apoio</option><option>Outro</option></select></div></div>
-<div class="v7-field"><label>Data/hora da atuação (Brasília)</label><input type="datetime-local" id="actionAtK17" required><label>O que foi feito / devolutiva</label><textarea id="returnV7" placeholder="Descreva a atuação realizada ou a devolutiva recebida do técnico."></textarea></div>
+<div class="v7-field"><small>O acompanhamento usa automaticamente a data/hora deste registro.</small><label>O que foi feito / devolutiva</label><textarea id="returnV7" placeholder="Descreva a atuação realizada ou a devolutiva recebida do técnico."></textarea></div>
 <div class="v7-field"><label>Endereço ofensor (quando aplicável)</label><input id="addressV7" placeholder="Rua, número, condomínio/local..."></div>
 <div class="v7-field"><label>Observação</label><textarea id="obsV7" placeholder="Informações adicionais."></textarea></div>
 <div class="v7-actions"><button onclick="closeTreatV7()">Cancelar</button><button class="primary" onclick="confirmTreatV7()">Salvar e enviar para acompanhamento</button></div>
@@ -1280,7 +1278,7 @@ removeAlloc=async function(p){
 const _qoeConfirmTreat=confirmTreatV7;
 confirmTreatV7=async function(){
  const p=treatTargetV7,manager=managerV7.value,type=actionTypeV7.value,ret=returnV7.value.trim(),addr=addressV7.value.trim(),obs=obsV7.value.trim();
- let actedK17;try{actedK17=qoeActionIsoK17('actionAtK17');}catch(e){return alert(e.message);}
+ const actedK17=null;
  if(qoeCloudReady&&p&&manager&&type&&ret){
    const {error}=await qoeRpc('gestao_registrar_tratativa_k17',{p_atuada_em:actedK17,p_porta:p,p_gestor_nome:manager,p_tipo:type,p_descricao:ret,p_endereco:addr||null,p_observacao:obs||null});
    if(error)return alert('Não foi possível salvar no Supabase: '+error.message);
@@ -1566,7 +1564,7 @@ document.addEventListener('DOMContentLoaded',()=>{updateExecutiveV794();
       if(!tr)return;
       out.push({
         porta:d.porta,node:d.node,tech:d.tecnico,
-        date:tr.atuada_em||tr.criado_em,atuacao_em:tr.atuada_em||tr.criado_em,sequencia:tr.sequencia,leituras_pos:tr.leituras_pos,data_informada:tr.data_informada,
+        date:tr.criado_em||tr.atuada_em,atuacao_em:tr.criado_em||tr.atuada_em,sequencia:tr.sequencia,leituras_pos:tr.leituras_pos,data_informada:tr.data_informada,
         type:tr.tipo,returnText:tr.descricao,
         address:tr.endereco,obs:tr.observacao,
         before:d.media_30d,current:d.nota_atual,
@@ -1668,7 +1666,7 @@ document.addEventListener('DOMContentLoaded',()=>{updateExecutiveV794();
       const seq=x.ev.vals.length?x.ev.vals.map(v=>Number(v).toFixed(0)).join(' → '):'Aguardando leitura pós-atuação';
       return `<tr>
         <td><b>${x.porta}</b></td><td>${x.node||'-'}</td><td>${x.tech||'-'}</td>
-        <td>${fmtDate(x.when)}${x.raw?.data_informada===false?`<small>Data real a conferir com o técnico</small><input type="datetime-local" id="monitorActualK17-${x.raw.cloudTratativaId}"><button onclick="qoeConfirmMonitorDateK17('${x.raw.cloudTratativaId}')">Confirmar data real</button>`:''}</td>
+        <td>${fmtDate(x.when)}<small>Data do registro no Portal</small></td>
         <td>${Number.isFinite(+x.before)?Math.round(+x.before):'-'}</td>
         <td>${Number.isFinite(+x.p.cur)?Math.round(+x.p.cur):(Number.isFinite(+x.current)?Math.round(+x.current):'-')}</td>
         <td class="v710-seq">${seq}</td>

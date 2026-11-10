@@ -1,0 +1,61 @@
+QoE HFC — Correção isolada K17.2 — Data do registro
+
+CAUSA
+A K17.1 exigia confirmação de data real para registros antigos. Isso bloqueava
+aprovação e processamento do acompanhamento. Regra aprovada pelo gestor:
+a referência será a data/hora em que a atuação foi registrada, já salva no banco.
+
+APLICAÇÃO (K17.1 deve estar instalada)
+1. No Supabase, abra o SQL Editor e execute INTEGRALMENTE 01_SUPABASE_K17_2.sql.
+   Se houver erro, pare e envie a mensagem. Não publique os HTMLs com SQL falho.
+   Não precisa executar novamente a instalação da K17.1.
+2. No GitHub ayrace/QOE, branch main, substitua gestao.html e portal.html pelos
+   arquivos deste pacote, com esses nomes, preservando os demais arquivos.
+3. Confira os arquivos no GitHub, aguarde o deploy Cloudflare e atualize ambas
+   as páginas com Ctrl+F5. Ambos devem exibir K17.2 — em homologação.
+
+RESULTADO ESPERADO
+- Não aparece o campo nem o botão Confirmar data real.
+- Em Devolutivas, Validar atuação não pede data; a aprovação da atuação continua.
+- Em Acompanhamento a referência é o registro original, mesmo em legado.
+- A data informada por navegador antigo não substitui o timestamp salvo no banco.
+- Aprovação posterior não reinicia a contagem.
+- Diário sem horário: só leituras dos dias posteriores ao registro contam.
+- Uma leitura real posterior <80 devolve à mesma carteira, sem esperar sete dias.
+- Sete dias consecutivos com leituras >=80 estabilizam; lacunas não contam como boas.
+- Ao abrir a Gestão, acompanhamentos antes bloqueados podem retornar ao técnico
+  ou estabilizar imediatamente conforme o histórico de leituras já importado.
+- Conclusões anteriores não são reabertas; recebimento de semanas encerradas
+  não é reescrito. Resultados por técnico usam a referência aprovada de registro.
+
+CONFERÊNCIA SEM REGISTROS FICTÍCIOS
+1. Confira login, título e versão. Confira carteiras, técnicos, retirada,
+   distribuição manual e histórico preservados.
+2. Abra Devolutivas: confira técnico, porta, descrição e múltiplos endereços de
+   uma atuação real; valide somente se a atuação estiver correta.
+3. Abra Acompanhamento: confira um registro antigo. Não deve pedir outra data.
+   Compare os dias seguintes ao registro no histórico de QoE:
+   <80 => retorno; 7 consecutivos >=80 => estabilizada; insuficientes => acompanha.
+4. Confira relatório individual e contagem da semana. Não inicie uma semana
+   extra só para testar. No próximo avanço real: pendências + novas MANUAIS.
+5. Na próxima atualização diária real, confira que não criou alocação automática.
+6. Faça a regressão operacional online: tratamento, oscilantes, portal, MDU,
+   acompanhamento, retorno, estabilização, recorrência, semanal, Marco 0,
+   WhatsApp, atualização diária, Supabase e histórico das portas.
+
+TESTES EXECUTADOS LOCALMENTE
+39 verificações SQL em PostgreSQL/PGlite e 11 testes de interface/JSDOM passaram.
+Incluem timestamp do servidor, aprovação tardia, legado sem confirmação, retorno
+imediato, sete dias consecutivos/lacunas, virada de mês, endereços, auth/token,
+proteção de acesso, semana, 5 pendentes + 5 novas =10 e Excel real (4058 portas,
+48288 leituras). qoe_gestor_atual continua UUID e RPCs originais preservadas.
+A simulação histórica altera datas APENAS na fixture de testes, nunca em produção.
+
+LIMITES
+A instalação e a regressão completa online ainda dependem da aplicação e da
+conferência do gestor. Não houve acesso de escrita ao banco/produção nesta entrega.
+A versão não foi homologada por conta própria. Backup: os botões legados referem
+funções ausentes na base auditada; não se afirma correção/teste desse fluxo.
+O SQL não cria tabelas nem status, não altera usuários, tokens ou vínculos.
+Somente contexto auxiliar de acompanhamento passa a apontar para criado_em;
+a data/hora original da tratativa e seu histórico permanecem intactos.

@@ -103,7 +103,7 @@ baseline=(r/'baseline/gestao.html').read_text()
 a=s.index('async function qoeMigrateInitial65(){');b=s.index('const _qoeConfirmAlloc=confirmAlloc;',a)
 ba=baseline.index('async function qoeMigrateInitial65(){');bb=baseline.index('const _qoeConfirmAlloc=confirmAlloc;',ba)
 s=s[:a]+baseline[ba:bb]+s[b:]
-(r/'gestao.html').write_text(s)
+# A saída só é gravada após a aplicação isolada da regra K17.2.
 # Portal: endereços e histórico preservados, acrescenta data real e evita envio duplicado.
 p=p.replace('<label>Tipo de atuação</label>','<label>Data/hora da atuação (Brasília)</label><input id="actionAtK17" type="datetime-local" required><label>Tipo de atuação</label>',1)
 p=p.replace("sb.rpc('portal_tecnico_carteira'", "sb.rpc('portal_tecnico_carteira_k17'")
@@ -115,4 +115,28 @@ p=p.replace("function openM(id,p){current=id;", "function openM(id,p){actionAtK1
 p=p.replace("techName=DATA[0]?.tecnico", "const context=await sb.rpc('portal_tecnico_contexto_k17',{p_token:token});if(!context.error){HIST=HIST.map(h=>{const x=(context.data||[]).find(x=>x.tratativa_id===(h.tratativa_id||h.id)||(x.porta===h.porta&&Date.parse(x.criado_em)===Date.parse(h.atuacao_em)));return x?{...h,atuacao_em:x.atuada_em,data_informada:x.data_informada}:h;});}techName=DATA[0]?.tecnico",1)
 p=p.replace('<header><h1>QoE HFC — Portal Técnico</h1>','<header><h1>QoE HFC — Portal Técnico</h1><small>K17.1 — em homologação</small>',1)
 p=p.replace('${dt(x.atuacao_em)} ${+x.recorrencia', "${dt(x.atuacao_em)} ${x.data_informada?'':'<small>(data legada de registro)</small>'} ${+x.recorrencia",1)
+# K17.2: referência automática no servidor; nenhum campo de data editável.
+s=s.replace('V7.11.1K17.1','V7.11.1K17.2')
+p=p.replace('K17.1 — em homologação','K17.2 — em homologação')
+s=s.replace(" let confirmedAction=tr.atuada_em;\n if(!tr.data_informada){try{confirmedAction=qoeActionIsoK17('legacyActionK17-'+id);}catch(e){return alert('Confirme com o técnico a data real da atuação: '+e.message);}}", " const confirmedAction=tr.criado_em;")
+s=s.replace("${!tr.data_informada?'<label>Data/hora real conferida com o técnico</label><input type=\"datetime-local\" id=\"legacyActionK17-'+tr.id+'\">':''}", '')
+start=s.index('${x.raw?.data_informada===false?`<small>Data real a conferir')
+end=s.index('</td>',start)
+s=s[:start]+'<small>Data do registro no Portal</small>'+s[end:]
+s=s.replace('<label>Data/hora da atuação (Brasília)</label><input type="datetime-local" id="actionAtK17" required>','<small>O acompanhamento usa automaticamente a data/hora deste registro.</small>')
+s=s.replace("document.getElementById('actionAtK17').value=qoeLocalInputK17();",'')
+s=s.replace(" let actedK17;try{actedK17=qoeActionIsoK17('actionAtK17');}catch(e){return alert(e.message);}", ' const actedK17=null;')
+s=s.replace('tr.atuada_em||tr.criado_em','tr.criado_em||tr.atuada_em')
+s=s.replace('Acompanhamento iniciado na data real da atuação.','Acompanhamento iniciado na data do registro no Portal.')
+p=p.replace('<label>Data/hora da atuação (Brasília)</label><input id="actionAtK17" type="datetime-local" required>','<small>O acompanhamento usa automaticamente a data/hora do registro no Portal.</small>')
+a=p.index('let savingK17=false;function portalActionDateK17()');b=p.index('async function save(){',a)
+p=p[:a]+'let savingK17=false;\n'+p[b:]
+p=p.replace("const acted=portalActionDateK17();if(!acted)return alert('Informe a data/hora real da atuação, sem data futura.');", 'const acted=null;')
+a=p.index('actionAtK17.value=new Intl.DateTimeFormat');b=p.index('current=id;',a)
+p=p[:a]+p[b:]
+# Contrato antigo mantido (p_atuada_em=null); timestamp autoritativo vem do banco.
+for phrase in ['Confirmar data real','Data real a conferir','legacyActionK17-','monitorActualK17-','id="actionAtK17"']:
+ assert phrase not in s and phrase not in p,phrase
+(r/'gestao.html').write_text(s)
 (r/'portal.html').write_text(p)
+

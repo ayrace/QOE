@@ -30,9 +30,9 @@ async function main(){
  `);
  await db.exec(fs.readFileSync(path.join(__dirname,'fixtures/controle-semanal-k165.sql'),'utf8'));
  await db.exec(fs.readFileSync(path.join(__dirname,'fixtures/QOE_SUPABASE_K6_VALIDAR_OU_DEVOLVER.sql'),'utf8'));
- const migration=fs.readFileSync(path.join(root,'01_SUPABASE_K17.sql'),'utf8');
+ const migration=fs.readFileSync(path.join(root,'00_PRE_REQUISITO_K17_1.sql'),'utf8');
  const beforeDefs=(await db.query("select proname,pg_get_functiondef(oid) def from pg_proc where pronamespace='public'::regnamespace and proname in ('qoe_gestor_atual','gestao_validar_atuacao','gestao_semanal_ler') order by proname")).rows;
- await db.exec(migration);await db.exec(migration);
+ await db.exec(migration);await db.exec(fs.readFileSync(path.join(root,'01_SUPABASE_K17_2.sql'),'utf8'));await db.exec(fs.readFileSync(path.join(root,'01_SUPABASE_K17_2.sql'),'utf8'));
  eq((await db.query("select proname,pg_get_functiondef(oid) def from pg_proc where pronamespace='public'::regnamespace and proname in ('qoe_gestor_atual','gestao_validar_atuacao','gestao_semanal_ler') order by proname")).rows,beforeDefs,'funções existentes, incluindo UUID, permanecem idênticas');
  await assert.rejects(db.query('select gestao_snapshot_k17()'),/não autorizado/);count++;
  await db.exec('set role anon');await assert.rejects(db.query('select * from qoe_leituras_hfc'),/permission denied/);count++;
@@ -40,7 +40,10 @@ async function main(){
  const token=(await db.query("select token_acesso from tecnicos where nome='Ana'")).rows[0].token_acesso;
  async function demand(port){return (await db.query(`insert into portas_qoe(porta,nota_atual) values($1,70) returning id`,[port])).rows[0].id;}
  async function action(port,date){const p=await demand(port);const d=(await db.query("insert into demandas(porta_id,tecnico_id,status,semana,distribuida_em) select $1,id,'PENDENTE',2,'2026-10-01' from tecnicos where nome='Ana' returning id",[p])).rows[0].id;
-  const tr=(await db.query("select portal_tecnico_registrar_atuacao_k17($1,$2,'MDU','Executado','1. Original | 2. Adicional',null,$3) id",[token,d,date])).rows[0].id;return {d,tr,p};}
+  const tr=(await db.query("select portal_tecnico_registrar_atuacao_k17($1,$2,'MDU','Executado','1. Original | 2. Adicional',null,$3) id",[token,d,'2099-01-01T00:00:00Z'])).rows[0].id;
+  const recorded=(await db.query('select criado_em from tratativas where id=$1',[tr])).rows[0].criado_em;assert.ok(Math.abs(Date.now()-new Date(recorded))<10000,'RPC usa timestamp do banco, ignora data passada pelo cliente');
+  /* Simula registros históricos: só a fixture altera criado_em. */
+  await db.query('update tratativas set criado_em=$1 where id=$2',[date,tr]);await db.query('select qoe_k172_sincronizar_registros()');return {d,tr,p};}
  async function notes(port,obj,month='2026-10'){return db.query('select gestao_salvar_base_diaria_k17($1)',[{mes:month,oct:{[port]:[port.split('-')[0],obj]}}]);}
  async function validate(x){return (await db.query('select gestao_validar_atuacao_k17($1,$2) x',[x.d,x.tr])).rows[0].x;}
  let a=await action('LATE-1','2026-10-27T12:00:00-03:00');await notes('LATE-1',{'28':70,'29':90});
@@ -48,7 +51,7 @@ async function main(){
  eq((await validate(a)).status,'PENDENTE','aprovação tardia já retorna por leitura ruim posterior, sem esperar sete dias');
  eq((await db.query('select tecnico_id from demandas where id=$1',[a.d])).rows[0].tecnico_id,owner,'retorno mantém o mesmo técnico');
  eq((await db.query('select endereco_ofensor from tratativas where id=$1',[a.tr])).rows[0].endereco_ofensor,'1. Original | 2. Adicional','endereços múltiplos permanecem íntegros');
- eq((await db.query('select data_informada from qoe_contexto_atuacao where tratativa_id=$1',[a.tr])).rows[0].data_informada,true,'data real é diferenciada da data de registro');
+ eq((await db.query('select data_informada from qoe_contexto_atuacao where tratativa_id=$1',[a.tr])).rows[0].data_informada,true,'referência automática dispensa confirmação manual');
  let b=await action('GOOD-1','2026-10-20T12:00:00-03:00');await notes('GOOD-1',Object.fromEntries([21,22,23,24,25,26,27].map(d=>[d,85])));
  eq((await validate(b)).status,'ESTABILIZADA','sete dias reais consecutivos após atuação estabilizam mesmo com aprovação atrasada');
  let c=await action('GAP-1','2026-10-20T12:00:00-03:00');await notes('GAP-1',Object.fromEntries([21,22,24,25,26,27,28].map(d=>[d,85])));
@@ -63,7 +66,6 @@ async function main(){
  const eventsBefore=(await db.query("select count(*)::int n from historico where demanda_id=$1 and evento='MONITORAMENTO_RETORNO_TRATAMENTO'",[g.d])).rows[0].n;
  await db.query('select gestao_processar_monitoramento_k17($1)',[g.d]);
  eq((await db.query("select count(*)::int n from historico where demanda_id=$1 and evento='MONITORAMENTO_RETORNO_TRATAMENTO'",[g.d])).rows[0].n,eventsBefore,'reprocessamento não duplica retorno');
- await assert.rejects(db.query("select portal_tecnico_registrar_atuacao_k17($1,$2,'MDU','x','y',null,'2099-01-01')",[token,g.d]),/inválida/);count++;
  await assert.rejects(db.query("select portal_tecnico_contexto_k17('00000000-0000-0000-0000-000000000000')"),/Token inválido/);count++;
  await assert.rejects(notes('BAD-DATE',{'31':85},'2026-11'),/Dia inexistente/);count++;
  // Recuperou sem atuação: registra observação e não volta ao dono se cair depois.
@@ -97,9 +99,10 @@ async function main(){
  // Legado sem data real: validação exige conferência, sem inventar o horário.
  const lp=await demand('LEGACYDATE-1');const ld=(await db.query("insert into demandas(porta_id,tecnico_id,status,semana,distribuida_em) select $1,id,'ATUACAO_REGISTRADA',2,'2026-10-01' from tecnicos where nome='Ana' returning id",[lp])).rows[0].id;
  const lt=(await db.query("insert into tratativas(demanda_id,tipo_atuacao) values($1,'MDU') returning id",[ld])).rows[0].id;
- await assert.rejects(db.query('select gestao_validar_atuacao_k17($1,$2)',[ld,lt]),/Confirme a data/);count++;
- eq((await db.query("select gestao_validar_atuacao_k17($1,$2,'2026-10-29T10:00:00-03:00') x",[ld,lt])).rows[0].x.status,'MONITORAMENTO','data legada é conferida antes de aprovar');
- eq((await db.query('select origem_data from qoe_contexto_atuacao where tratativa_id=$1',[lt])).rows[0].origem_data,'GESTAO_CONFERENCIA','origem da confirmação de data fica auditável');
+ await db.query("update tratativas set criado_em='2026-10-29T10:00:00-03:00' where id=$1",[lt]);
+ eq((await db.query('select gestao_validar_atuacao_k17($1,$2) x',[ld,lt])).rows[0].x.status,'MONITORAMENTO','legado aprova sem data manual');
+ eq((await db.query('select origem_data from qoe_contexto_atuacao where tratativa_id=$1',[lt])).rows[0].origem_data,'REGISTRO_PORTAL','origem automática fica identificada');
+ eq((await db.query('select atuada_em=(select criado_em from tratativas where id=$1) same from qoe_contexto_atuacao where tratativa_id=$1',[lt])).rows[0].same,true,'aprovação tardia não reinicia data de registro');
  await db.query("select gestao_importar_legado_k17($1)",[{mes:'2026-09',oct:{'LEGACYBASE-1':['LEGACYBASE',{'30':85}]}}]);
  await notes('LEGACYBASE-1',{'30':90},'2026-09');
  await db.query("select gestao_importar_legado_k17($1)",[{mes:'2026-09',oct:{'LEGACYBASE-1':['LEGACYBASE',{'30':85}]}}]);
@@ -107,8 +110,17 @@ async function main(){
  const lm=await action('LEGACYMON-1','2026-10-29T10:00:00-03:00');await notes('LEGACYMON-1',{'30':70});
  await db.query("update demandas set status='MONITORAMENTO' where id=$1",[lm.d]);
  await db.query("update qoe_contexto_atuacao set data_informada=false,origem_data='REGISTRO_LEGADO',validada_em=now(),decisao='VALIDADA' where tratativa_id=$1",[lm.tr]);
- eq((await db.query('select gestao_processar_monitoramento_k17($1) x',[lm.d])).rows[0].x.motivo,'DATA_REAL_NAO_INFORMADA','monitoramento antigo não presume uma data real inexistente');
- eq((await db.query("select gestao_confirmar_data_atuacao_k17($1,'2026-10-29T10:00:00-03:00') x",[lm.tr])).rows[0].x.status,'PENDENTE','conferência da data antiga já devolve por leitura ruim posterior');
+ eq((await db.query('select gestao_processar_monitoramento_k17($1) x',[lm.d])).rows[0].x.status,'PENDENTE','legado antes bloqueado retorna automaticamente pela leitura ruim');
+ const stable=await action('OLDSTABLE-1','2026-10-20T10:00:00-03:00');await notes('OLDSTABLE-1',Object.fromEntries([21,22,23,24,25,26,27].map(d=>[d,85])));
+ await db.query("update demandas set status='MONITORAMENTO' where id=$1",[stable.d]);
+ await db.query("update qoe_contexto_atuacao set data_informada=false,atuada_em='2026-11-01',validada_em=now(),decisao='VALIDADA' where tratativa_id=$1",[stable.tr]);
+ await db.query('select gestao_snapshot_k17()');
+ eq((await db.query('select status from demandas where id=$1',[stable.d])).rows[0].status,'ESTABILIZADA','snapshot destrava legado usando registro original e sete dias consecutivos');
+ const original=(await db.query('select criado_em from tratativas where id=$1',[stable.tr])).rows[0].criado_em;
+ await db.query("select gestao_confirmar_data_atuacao_k17($1,'2099-01-01')",[stable.tr]);
+ eq((await db.query('select atuada_em from qoe_contexto_atuacao where tratativa_id=$1',[stable.tr])).rows[0].atuada_em,original,'compatibilidade com interface antiga não altera a data nem reabre conclusão');
+ await db.exec(fs.readFileSync(path.join(root,'01_SUPABASE_K17_2.sql'),'utf8'));
+ eq((await db.query('select status from demandas where id=$1',[stable.d])).rows[0].status,'ESTABILIZADA','reaplicar SQL não reabre resultado concluído');
  const realPath=path.join(__dirname,'expected-real.json');
  if(fs.existsSync(realPath)){
   const real=JSON.parse(fs.readFileSync(realPath,'utf8'));const expectedN=Object.values(real).reduce((n,v)=>n+Object.keys(v[1]).length,0);
@@ -116,6 +128,6 @@ async function main(){
   const actual=(await db.query("select count(*)::int n from qoe_leituras_hfc where porta=any($1::text[]) and data_leitura between '2026-10-01' and '2026-10-12'",[Object.keys(real)])).rows[0].n;
   eq(actual,expectedN,'importação SQL em lote confere as 48.288 leituras reais');console.log('Importação real em lote:',Date.now()-started,'ms');
  }
- await db.close();console.log(count+' verificações SQL K17 passaram.');
+ await db.close();console.log(count+' verificações SQL K17.2 passaram.');
 }
 main().catch(e=>{console.error(e);process.exit(1);});
