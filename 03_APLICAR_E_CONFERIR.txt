@@ -1,0 +1,101 @@
+QoE HFC — Gestão Operacional K18.0 — Distribuição mensal
+Candidata em homologação. Gestão K16.2 permanece a base congelada.
+
+O QUE MUDA AGORA
+Novembro/2026 passa a ser o período de distribuição e cobrança.
+Carteira = pendências herdadas + novas portas escolhidas MANUALMENTE.
+Sem quantidade fixa, limite de cinco, preenchimento automático ou distribuição
+pela atualização do Excel. Pode alocar portas durante todo o mês.
+A data do REGISTRO da atuação inicia acompanhamento. Aprovar depois não reinicia.
+Sete dias reais consecutivos >=80 estabilizam; leitura posterior <80 retorna
+imediatamente ao mesmo técnico. Sem leitura não presume melhora nem falha.
+
+COMO APLICAR SOBRE A K17.1 QUE ESTÁ NA MAIN
+1. Execute integralmente 01_SUPABASE_K17_2.sql no SQL Editor do Supabase.
+   É o ajuste já aprovado da data do registro. Pode reaplicar se já instalou K17.2.
+2. Execute integralmente 02_SUPABASE_MENSAL_K18.sql.
+   Cria APENAS duas tabelas adicionais privadas (qoe_meses e qoe_mes_carteira)
+   e funções mensais. Não altera usuários, tokens, status ou demandas.semana.
+   Se qualquer SQL falhar, PARE e envie o erro; não publique os HTMLs.
+3. No GitHub ayrace/QOE, branch main, substitua SOMENTE gestao.html e portal.html
+   pelos arquivos deste pacote. Confira nomes, conteúdo e versão K18.0.
+4. Confira os arquivos no GitHub, aguarde o Cloudflare e atualize ambas as páginas
+   com Ctrl+F5. A Gestão deve mostrar Distribuição mensal — K18.0.
+5. Entre na Gestão e vá a Mensal / Histórico. O período atual deve ser 11/2026.
+
+MIGRAÇÃO PRESERVANDO DADOS
+- NÃO apaga, encerra, redistribui ou recria demandas existentes.
+- Mantém históricos, gestores, técnicos, carteira individual, leituras e MDU.
+- Arquiva para consulta o retrato das semanas existente no momento da migração.
+- Novembro consolida alocações e atuações já registradas em novembro, pendências
+  atuais herdadas, normalizações e retiradas identificadas no período.
+- Essa consolidação NÃO é uma certificação de que o histórico antigo está completo.
+  Dados não registrados antes não são inventados; o painel identifica a migração.
+- Monitoramentos de outubro continuam no fluxo operacional, sem virar nova
+  produção de novembro. Se retornarem agora ao tratamento, entram na carga mensal
+  com a mesma demanda e técnico. Atuações de novembro contam em novembro.
+- Alocações duplicadas são sinalizadas com porta/técnicos. Não são excluídas.
+- Atualizar do banco pode processar acompanhamentos que antes estavam bloqueados
+  pela confirmação de data: podem estabilizar ou retornar conforme leituras reais.
+- Mantém as semanas antigas nas tabelas de origem e no seletor S: histórico.
+  Não use versões antigas da Gestão para iniciar semanas após a migração.
+
+ROTINA MENSAL
+- Alocar: escolha porta e técnico. Não muda de mês.
+- Trocar técnico: pendência única pode ser transferida com confirmação explícita.
+  Histórico e recebimento do técnico de origem permanecem preservados.
+  Atuações aguardando validação/monitoramento e duplicidades não são transferidas
+  silenciosamente; confira o fluxo antes de uma realocação.
+- Marcar lista distribuída: marcação mensal compartilhada, não cria demandas.
+- Excel diário: atualiza leituras, sem novas alocações nem avanço do mês.
+- Iniciar próximo mês: ação explícita, só quando o próximo mês já começou.
+  Fecha o mês anterior, preserva seu recebimento e carrega pendências, incluindo
+  devolutivas aguardando Gestão. Novas portas dependem de seleção manual.
+  Não precisa clicar agora em novembro para começar a usar o mês.
+- Resultados de atuações do mês continuam sendo apurados depois do fechamento;
+  o acompanhamento pode atravessar o mês. Recebimentos fechados ficam preservados.
+
+RELATÓRIO
+Por técnico: herdadas, novas, recebidas, atuadas, aguardando Gestão, validadas,
+estabilizadas, retornos, acompanhamento, pendentes, assertividade e copiar cobrança.
+Atuadas = portas com atuação real registrada no mês (uma porta/técnico).
+SEM_OPORTUNIDADE e NECESSITA_APOIO são devolutivas, não execução real.
+Tratadas = atuações validadas; não significa resolvidas.
+Assertividade = estabilizadas / (estabilizadas + retornos), somente concluídas.
+Zero atuação com portas pendentes é destacado, sem envio automático de mensagem.
+Uma porta transferida pode constar no recebimento de dois técnicos. O resumo geral
+conta portas físicas distintas e não soma demandas nem agrega todo o node.
+
+CONFERÊNCIA ONLINE
+1. Login e versão K18.0 em Gestão e Portal.
+2. Mensal / Histórico: 11/2026 atual e semanas anteriores consultáveis.
+3. Compare carteiras/técnicos/portas com o estado antes da aplicação.
+4. Confira um técnico com atuação em novembro e outro com pendência e zero atuação.
+5. Compare as portas pendentes e a cobrança copiada (não é enviada pelo sistema).
+6. Confira uma normalização: recebida permanece, produtividade não aumenta.
+7. Em uma ação REAL, confirme data do registro, endereços originais/adicionais,
+   recebimento em Devolutivas/MDU e validação sem confirmar outra data.
+8. Confira acompanhamento, retorno por leitura posterior <80 e sete dias >=80.
+9. Na próxima alocação real, confira mês e técnico; período não deve mudar.
+10. Na próxima carga diária real, confira que não criou demandas.
+11. Em dezembro, iniciar próximo mês deve carregar pendências e não completar cinco.
+12. Regressão restante online: retirada, tratamento, oscilantes, recorrência,
+    histórico de portas, média 30 dias+atual, WhatsApp, Supabase e Marco 0.
+Não crie atuações fictícias, não faça retiradas de teste nem avance mês sem necessidade.
+
+VALIDAÇÃO TÉCNICA EXECUTADA
+79 verificações SQL em PostgreSQL/PGlite (39 fluxo existente + 40 mensais)
+e 16 testes de interface/JSDOM passaram, incluindo o Excel real (4058 portas,
+48288 leituras). Abrangem migração/reaplicação sem alteração de fonte, autorização,
+carteira mensal, ausência de limite cinco, transferência, zero atuação, resultado,
+normalização, duplicidade, virada outubro->novembro, rejeição de abertura futura,
+períodos obsoletos, múltiplos endereços e regras dos sete dias.
+A passagem outubro->novembro foi testada com datas reais na fixture; não foi
+alterado relógio ou dado de produção. Testes não substituem homologação online.
+A função qoe_gestor_atual continua UUID. RPCs e tabelas semanais são preservadas.
+Backup: os botões legados apontam funções ausentes na base auditada; esse fluxo
+não foi corrigido nem declarado aprovado nesta evolução mensal.
+
+STATUS
+Código preparado e preservado em branch separada. A main e o banco de produção
+não foram modificados pelo assistente. Aplicação e homologação online pendentes.

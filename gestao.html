@@ -193,7 +193,7 @@ tbody tr:last-child td{border-bottom:0!important}
 <meta property="og:description" content="Tratamento e Acompanhamento de Rede">
 
 </head><body>
-<header><h1>QOE HFC — Tratamento e Acompanhamento</h1><div class="sub">Porto Alegre • V7.11.1K17.2 • Fluxo e execução semanal — em homologação</div></header>
+<header><h1>QOE HFC — Tratamento e Acompanhamento</h1><div class="sub">Porto Alegre • V7.11.1K18.0 • Distribuição mensal — em homologação</div></header>
 
 <div class="qoe-nav-shell">
   <nav class="qoe-nav" aria-label="Navegação do painel">
@@ -201,7 +201,7 @@ tbody tr:last-child td{border-bottom:0!important}
     <button class="qoe-nav-btn" data-page="tratamento" onclick="qoePage('tratamento')">Tratamento</button>
     <button class="qoe-nav-btn" data-page="acompanhamento" onclick="qoePage('acompanhamento')">Acompanhamento</button>
     <button class="qoe-nav-btn" data-page="devolutivas" onclick="qoePage('devolutivas')">Devolutivas / MDU</button>
-    <button class="qoe-nav-btn" data-page="semanal" onclick="qoePage('semanal')">Semanal / Histórico</button>
+    <button class="qoe-nav-btn" data-page="semanal" onclick="qoePage('semanal')">Mensal / Histórico</button>
     <button class="qoe-nav-btn qoe-data-btn" type="button" onclick="qoeToggleAdminV711E()">⚙ Dados</button>
   </nav>
 </div>
@@ -253,9 +253,9 @@ tbody tr:last-child td{border-bottom:0!important}
     <div><span>Média mensal atual</span><b id="mgrMonthly">—</b><small>portas com média do mês abaixo de 80</small></div>
   </div>
 
-  <h3 style="margin:18px 0 8px">Resultado da atuação — semana atual</h3>
+  <h3 style="margin:18px 0 8px">Resultado da atuação — mês atual</h3>
   <div class="mgr-actions">
-    <div><span>Tratadas</span><b id="mgrTreated">0</b></div>
+    <div><span>Atuadas no mês</span><b id="mgrTreated">0</b></div>
     <div><span>Estabilizadas</span><b id="mgrStable">0</b></div>
     <div><span>Em acompanhamento</span><b id="mgrMonitoring">0</b></div>
     <div><span>Retornaram</span><b id="mgrReturned">0</b></div>
@@ -264,9 +264,9 @@ tbody tr:last-child td{border-bottom:0!important}
 
   <div class="mgr-movement">
     <div><span>Recuperadas pela atuação</span><b id="mgrRecovered">0</b></div>
-    <div><span>Novas degradações na semana</span><b id="mgrNewBad">0</b></div>
-    <div><span>Saldo da base</span><b id="mgrBalance">—</b><small>fim da semana vs início</small></div>
-    <div><span>Ganho diário na semana</span><b id="mgrGain">—</b><small>pontos percentuais</small></div>
+    <div><span>Novas degradações estimadas no mês</span><b id="mgrNewBad">0</b></div>
+    <div><span>Saldo da base</span><b id="mgrBalance">—</b><small>fim do período vs início do mês</small></div>
+    <div><span>Ganho diário no mês</span><b id="mgrGain">—</b><small>pontos percentuais</small></div>
   </div>
 
   <div class="mgr-chart-head">
@@ -283,7 +283,7 @@ tbody tr:last-child td{border-bottom:0!important}
 
   <div id="mgrReading" class="mgr-reading"></div>
   <div class="toolbar" style="margin-top:12px">
-    <button class="primary" onclick="qoeExportManagerCardV711B()">Gerar resumo semanal</button>
+    <button class="primary" onclick="qoeExportManagerCardV711B()">Gerar resumo mensal</button>
     <button onclick="qoeCopyTeamSummaryV711B()">Copiar devolutiva para equipe</button>
     <span id="mgrCopyMsg" class="sub"></span>
   </div>
@@ -293,16 +293,16 @@ tbody tr:last-child td{border-bottom:0!important}
 <!-- V7.11.1D: resumo legado removido visualmente; IDs preservados para compatibilidade com scripts validados. -->
 <div id="legacyKpisV711D" aria-hidden="true" style="display:none!important"><b id="kPorts">0</b><b id="kBands">0</b><b id="kNodes">0</b><b id="kMulti">0</b></div>
 
-<div class="panel"><h2>Histórico semanal de distribuição</h2>
-<div class="sub">Acompanhamento iniciado em 09/10/2026. Marco 0: 13 técnicos × 5 portas. Semanas seguintes: pendências + novas portas escolhidas manualmente, sem limite fixo. Cada porta permanece como unidade independente de tratamento.</div>
-<div id="weeklySyncK165" class="sub" role="status"></div>
+<div class="panel"><h2>Distribuição mensal e histórico</h2>
+<div class="sub">Controle mensal a partir de novembro/2026. Carteira = pendências herdadas + novas portas escolhidas manualmente, sem quantidade fixa. Marco 0 e histórico semanal preservados para consulta.</div>
+<div id="weeklySyncK165" class="sub" role="status"></div><div id="monthlyConflictsK18" style="color:#b42318" role="status"></div>
 <div class="toolbar">
 <label>Visualizar: <select id="weekSel" onchange="renderWeeks()"></select></label>
-<button onclick="newWeek()">Iniciar próxima semana</button>
-<button style="border-color:#b42318;color:#b42318" onclick="resetWeeklyCount()">Zerar contagem semanal</button>
+<button onclick="newWeek()">Iniciar próximo mês</button>
+<button style="border-color:#b42318;color:#b42318" onclick="resetWeeklyCount()">Preservação do histórico</button>
 </div>
-<div class="wrap"><table><thead><tr><th>Técnico</th><th>Semana</th><th>Portas recebidas</th><th>Portas tratadas</th><th>Normalizadas sem atuação</th><th>Pendentes</th><th>Novas na semana</th><th>Distribuição</th></tr></thead><tbody id="weeklyBody"></tbody></table></div></div>
-<div class="panel" id="weeklyTechReportK17"><h2>Execução e resultado por técnico</h2><div id="techReportNoteK17" class="sub"></div><div class="wrap"><table><thead><tr><th>Técnico</th><th>Herdadas</th><th>Novas</th><th>Recebidas</th><th>Atuadas</th><th>Aguardando Gestão</th><th>Validadas</th><th>Estabilizadas</th><th>Retornos</th><th>Acompanhamento</th><th>Pendentes de atuação</th><th>Assertividade</th><th>WhatsApp</th></tr></thead><tbody id="techReportBodyK17"></tbody></table></div></div><div class="panel"><h2>Portas alocadas para tratamento</h2>
+<div class="wrap"><table><thead><tr><th>Técnico</th><th>Período</th><th>Portas recebidas</th><th>Portas tratadas</th><th>Normalizadas sem atuação</th><th>Pendentes</th><th>Novas no período</th><th>Distribuição</th></tr></thead><tbody id="weeklyBody"></tbody></table></div></div>
+<div class="panel" id="weeklyTechReportK17"><h2>Execução mensal e resultado por técnico</h2><div id="techReportNoteK17" class="sub"></div><div class="wrap"><table><thead><tr><th>Técnico</th><th>Herdadas</th><th>Novas</th><th>Recebidas</th><th>Atuadas</th><th>Aguardando Gestão</th><th>Validadas</th><th>Estabilizadas</th><th>Retornos</th><th>Acompanhamento</th><th>Pendentes de atuação</th><th>Assertividade</th><th>WhatsApp</th></tr></thead><tbody id="techReportBodyK17"></tbody></table></div></div><div class="panel"><h2>Portas alocadas para tratamento</h2>
 <div class="sub">Selecione um técnico para visualizar somente a carteira dele.</div>
 <div id="techCards" class="techs"></div>
 <div class="toolbar">
@@ -347,14 +347,14 @@ tbody tr:last-child td{border-bottom:0!important}
 <!-- V7.11.1D: nota histórica retirada da home para reduzir redundância visual. -->
 
 <div class="panel" id="weeklyReportV796">
-  <h2>Relatório Semanal de Execução QoE</h2>
-  <div class="sub">Resumo para acompanhamento e cobrança da execução semanal.</div>
+  <h2>Relatório Mensal de Execução QoE</h2>
+  <div class="sub">Resumo para acompanhamento e cobrança mensal. Histórico semanal disponível no seletor de período.</div>
   <div class="weekly-kpis">
     <div class="wk"><span>Portas enviadas</span><b id="wkSent">0</b></div>
-    <div class="wk"><span>Portas tratadas</span><b id="wkDone">0</b></div>
+    <div class="wk"><span>Portas atuadas</span><b id="wkDone">0</b></div>
     <div class="wk"><span>Portas pendentes</span><b id="wkPending">0</b></div>
     <div class="wk"><span>Execução</span><b id="wkRate">0%</b></div>
-    <div class="wk"><span>Técnicos com devolutivas</span><b id="wkTech">0 de 13</b></div>
+    <div class="wk"><span>Técnicos com atuação</span><b id="wkTech">0 de 13</b></div>
   </div>
   <div class="weekly-message" id="wkReading"></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
@@ -483,7 +483,7 @@ function verifyBaseline(){
  const ok=vals.length===13&&vals.every(v=>v===5);
  baselineCheck.innerHTML=ok
    ? '<span style="color:#176b3a;font-weight:bold">Base conferida: 13 técnicos × 5 portas = 65 portas.</span>'
-   : '<span style="color:#b42318;font-weight:bold">Atenção: a base semanal não está em 5 portas por técnico.</span>';
+   : '<span style="color:#b42318;font-weight:bold">Marco 0 histórico disponível. A carteira mensal não possui quantidade fixa por técnico.</span>';
 }
 
 // K17 — correções de fluxo; nenhuma distribuição automática.
@@ -609,7 +609,7 @@ async function newWeek(){
 }
 
 
-function resetWeeklyCount(){alert('O histórico semanal compartilhado é preservado. Para abrir uma nova semana, use Iniciar próxima semana.');}
+function resetWeeklyCount(){alert('O histórico semanal compartilhado é preservado. Para abrir uma nova semana, use Iniciar próximo mês.');}
 
 function renderAutoMonitor(){
   // K16.2: saneia a CARGA ATIVA antes de renderizar.
@@ -638,7 +638,7 @@ function renderTechCards(){
   techCards.innerHTML=names.map(n=>{
     const qty=allocatedRows.filter(r=>r.dataset.tech===n).length;
     const key=state.currentWeek+'|'+n;
-    const dist=state.distributed&&state.distributed[key];
+    const dist=state.monthlyDistributed?.[qoeMonthlyK18?.mes_atual]?.[n];
     return `<div class="techcard ${selectedTech===n?'active':''} ${dist?'distributed':''}">
       <button style="border:0;background:transparent;padding:0;text-align:left;width:100%;color:inherit" onclick="filterTech('${n.replace(/'/g,"\\'")}')">
         <b>${n}</b><span>${qty} portas</span><small>Clique para ver somente esta carteira</small>
@@ -819,14 +819,14 @@ async function copyText(){
      out+=r.dataset.porta+' | Média 30d: '+c[5].innerText+' | Atual: '+c[6].innerText+'\n';
    });
 
-   const w=qoeWeeklyDataK165.semanas.find(w=>w.semana===qoeWeeklyDataK165.semana_atual);
+   const w=qoeMonthlyK18.meses.find(w=>w.mes===qoeMonthlyK18.mes_atual);
    const m=w.tecnicos.find(x=>x.tecnico===t)||{recebidas:0,tratadas:0,normalizadas:0,pendentes:0,novas:0};
-   out+='\nSemana '+w.semana+'\n';
+   out+='\nMês '+qoeMonthLabelK18(w.mes)+'\n';
    out+='Portas recebidas: '+m.recebidas+'\n';
    out+='Portas tratadas: '+m.tratadas+'\n';
    out+='Normalizadas sem atuação: '+m.normalizadas+'\n';
    out+='Portas pendentes: '+m.pendentes+'\n';
-   out+='Novas nesta semana: '+m.novas+'\n\n';
+   out+='Novas no mês: '+m.novas+'\n\n';
 
    const token=tokenByTech[t];
    if(token){
@@ -842,7 +842,7 @@ async function copyText(){
  }
  try{
    await navigator.clipboard.writeText(out);
-   alert('Relatório copiado com resumo semanal e link individual do técnico.');
+   alert('Relatório copiado com resumo mensal e link individual do técnico.');
  }catch(e){
    prompt('Copie o relatório abaixo:',out);
  }
@@ -1068,6 +1068,84 @@ async function updateDaily(){
    alert('Não consegui ler esta extração do Excel. Verifique se é o relatório diário QoE no formato esperado. Detalhe: '+e.message);
  }
 }
+// K18: período mensal compartilhado. Sem alocação/avanço automático.
+let qoeMonthlyK18=null,qoeMonthlyBusyK18=false,qoeMonthlyErrorK18='';
+function qoeMonthLabelK18(m){const [y,mm]=String(m).split('-');return `${mm}/${y}`;}
+function qoePeriodLabelK18(w){return w?.mes?'Mês '+qoeMonthLabelK18(w.mes):w?'Semana '+w.semana+' (histórico)':'Período';}
+function qoeMonthlyApplyK18(data){
+ if(data?.versao!==180||!/^\d{4}-\d{2}$/.test(data.mes_atual||'')||!Array.isArray(data.meses)||!data.meses.some(m=>m.mes===data.mes_atual))throw Error('Resposta mensal inválida.');
+ if(qoeMonthlyK18&&Date.parse(data.atualizado_em)<Date.parse(qoeMonthlyK18.atualizado_em))return;
+ qoeMonthlyK18=data;qoeMonthlyErrorK18='';
+ state.monthlyDistributed=state.monthlyDistributed||{};
+ data.meses.forEach(m=>{state.monthlyDistributed[m.mes]=m.distribuidas||{};});
+ persist();renderWeeks();renderTechCards();
+}
+// Os nomes legados permanecem para compatibilidade dos pontos de atualização.
+qoeWeeklyLoadK165=async function(){
+ if(!await qoeCheckSession()){qoeMonthlyK18=null;qoeMonthlyErrorK18='Entre na Gestão para consultar os meses.';qoeWeeklyErrorK165=qoeMonthlyErrorK18;renderWeeks();return false;}
+ try{const {data,error}=await qoeRpc('gestao_mensal_ler_k18');if(error)throw error;qoeMonthlyApplyK18(data);return true;}
+ catch(e){qoeMonthlyErrorK18='Controle mensal indisponível. Confira o SQL K18. '+(e.message||e);qoeWeeklyErrorK165=qoeMonthlyErrorK18;renderWeeks();return false;}
+};
+qoeWeeklySelectedK165=function(){
+ if(!qoeMonthlyK18)return null;const v=document.getElementById('weekSel')?.value||qoeMonthlyK18.mes_atual;
+ if(v.startsWith('S:'))return (qoeMonthlyK18.semanas_legadas||[]).find(w=>String(w.semana)===v.slice(2))||null;
+ return qoeMonthlyK18.meses.find(w=>w.mes===v)||qoeMonthlyK18.meses.find(w=>w.mes===qoeMonthlyK18.mes_atual);
+};
+qoeWeeklyTotalsK165=function(w){
+ if(!w)return null;const t=w.totais;
+ if(!t){const x={week:w.semana,label:qoePeriodLabelK18(w),sent:0,done:0,normalized:0,pending:0,newPorts:0,withdrawn:0,unknown:0,active:0,totalTechs:w.tecnicos.length,rate:0};w.tecnicos.forEach(t=>{x.sent+=t.recebidas;x.done+=t.tratadas;x.normalized+=t.normalizadas;x.pending+=t.pendentes;x.newPorts+=t.novas;x.withdrawn+=t.retiradas;x.unknown+=t.sem_leitura;if(t.tratadas>0)x.active++;});x.rate=x.sent?100*x.done/x.sent:0;return x;}
+ return {label:qoePeriodLabelK18(w),sent:t.recebidas,done:t.validadas,acted:t.atuadas,normalized:t.normalizadas,pending:t.pendentes,newPorts:t.novas,withdrawn:t.retiradas,unknown:0,active:t.tecnicos_atuantes,totalTechs:t.total_tecnicos,rate:t.recebidas?100*t.atuadas/t.recebidas:0};
+};
+renderWeeks=function(){
+ const sel=document.getElementById('weekSel'),body=document.getElementById('weeklyBody');if(!sel||!body)return;
+ if(!qoeMonthlyK18){sel.innerHTML='';body.innerHTML='<tr><td colspan="8">'+qoeWeeklyEscapeK165(qoeMonthlyErrorK18||'Entre na Gestão para carregar o controle mensal.')+'</td></tr>';}
+ else{
+ const previous=sel.value;const periods=[...qoeMonthlyK18.meses.map(m=>({key:m.mes,label:qoePeriodLabelK18(m)+(m.fechado_em?' — encerrado':' — atual')})),...(qoeMonthlyK18.semanas_legadas||[]).map(w=>({key:'S:'+w.semana,label:qoePeriodLabelK18(w)}))];
+ sel.innerHTML=periods.map(p=>`<option value="${p.key}">${p.label}</option>`).join('');sel.value=periods.some(p=>p.key===previous)?previous:qoeMonthlyK18.mes_atual;
+ const w=qoeWeeklySelectedK165();body.innerHTML=w.tecnicos.map(t=>`<tr><td><b>${qoeWeeklyEscapeK165(t.tecnico)}</b></td><td>${qoePeriodLabelK18(w)}</td><td>${t.recebidas}</td><td>${t.tratadas}</td><td>${t.normalizadas}</td><td>${t.pendentes}</td><td>${t.novas}</td><td>${w.distribuidas?.[t.tecnico]?'Distribuída ✓ '+qoeWeeklyEscapeK165(w.distribuidas[t.tecnico].date):'Não marcada'}</td></tr>`).join('');
+ }
+ const note=document.getElementById('weeklySyncK165');const w=qoeWeeklySelectedK165();
+ if(note)note.textContent=qoeMonthlyErrorK18||(w?.mes?`${qoePeriodLabelK18(w)} • carteira mensal compartilhada. Pendências herdadas + novas portas escolhidas manualmente.${w.migracao==='MIGRACAO_NOVEMBRO'?' Novembro consolidado na migração: pendências recuperadas, recebimentos e registros de novembro.':''} ${(w.conflitos||[]).length?'ATENÇÃO: '+w.conflitos.length+' porta(s) possuem demandas ativas duplicadas. Nenhuma demanda foi excluída.':''}`:w?'Histórico semanal preservado na migração, somente consulta.':'');
+ const warn=document.getElementById('monthlyConflictsK18');if(warn)warn.textContent=w?.mes?(w.conflitos||[]).map(c=>`${c.porta}: ${c.demandas} demandas (${c.tecnicos})`).join(' • '):'';
+ if(typeof window.renderWeeklyV796==='function')window.renderWeeklyV796();qoeReportLoadK17();verifyBaseline();
+};
+newWeek=async function(){return qoeStartNextMonthK18();};
+async function qoeStartNextMonthK18(){
+ if(qoeMonthlyBusyK18)return;qoeMonthlyBusyK18=true;
+ try{if(!await qoeWeeklyLoadK165())return alert(qoeMonthlyErrorK18);
+ const m=qoeMonthlyK18.mes_atual;
+ if(!confirm('Fechar '+qoeMonthLabelK18(m)+' e iniciar o próximo mês? Somente pendências serão carregadas. Novas portas dependem de distribuição manual.'))return;
+ const {data,error}=await qoeRpc('gestao_mensal_iniciar_k18',{p_mes_esperado:m+'-01'});if(error)throw error;
+ qoeMonthlyApplyK18(data);document.getElementById('weekSel').value=data.mes_atual;await qoeRemoteRefresh();alert('Mês '+qoeMonthLabelK18(data.mes_atual)+' aberto.');
+ }catch(e){alert('Abertura não confirmada: '+(e.message||e));}finally{qoeMonthlyBusyK18=false;}
+}
+resetWeeklyCount=function(){alert('O histórico é preservado. O mês só muda em Iniciar próximo mês.');};
+toggleDistributed=async function(tech){
+ if(!await qoeWeeklyLoadK165())return alert(qoeMonthlyErrorK18);
+ const m=qoeMonthlyK18.meses.find(x=>x.mes===qoeMonthlyK18.mes_atual),mark=!m.distribuidas?.[tech];
+ if(!mark&&!confirm('Remover a marcação de lista distribuída para '+tech+'?'))return;
+ const {data,error}=await qoeRpc('gestao_mensal_distribuida_k18',{p_tecnico:tech,p_mes_esperado:m.mes+'-01',p_distribuida:mark});
+ if(error)return alert('Marcação não confirmada: '+error.message);qoeMonthlyApplyK18(data);
+};
+qoeReportLoadK17=async function(){
+ const body=document.getElementById('techReportBodyK17');if(!body)return;const w=qoeWeeklySelectedK165();const request=++qoeReportRequestK17;
+ if(!w){qoeReportK17=null;body.innerHTML='<tr><td colspan="13">Entre na Gestão para consultar o relatório mensal.</td></tr>';return;}
+ if(!w.mes){qoeReportK17=null;body.innerHTML='<tr><td colspan="13">Resumo mensal preservado na tabela acima. O relatório de resultado passa a ser mensal a partir de novembro.</td></tr>';return;}
+ // Relatório e tabela usam a mesma resposta de banco, sem uma segunda leitura concorrente.
+ qoeReportK17=w;
+ document.getElementById('techReportNoteK17').textContent=qoePeriodLabelK18(w)+' • Atuadas = portas com atuação registrada no mês. Tratadas = atuações validadas. Assertividade = estabilizadas ÷ (estabilizadas + retornos). Acompanhamentos não entram nesse denominador. Contagens por técnico podem repetir uma porta transferida; o resumo geral conta portas físicas distintas.';
+ body.innerHTML=w.tecnicos.map((t,i)=>`<tr${t.sem_atuacao?' style="background:#fff1f2"':''}><td><b>${qoeWeeklyEscapeK165(t.tecnico)}</b><br><small>${t.sem_atuacao?'SEM ATUAÇÃO NO MÊS':t.aguardando_validacao?'Há devolutivas aguardando a Gestão':'Execução registrada ou sem pendência de atuação'}</small></td><td>${t.herdadas}</td><td>${t.novas}</td><td>${t.recebidas}</td><td>${t.atuadas}<br><small>${t.devolutivas} devolutivas</small></td><td>${t.aguardando_validacao}</td><td>${t.validadas}</td><td>${t.estabilizadas}</td><td>${t.retornos}</td><td>${t.acompanhamento}</td><td>${t.pendentes}</td><td>${t.assertividade==null?'Aguardando resultado':t.assertividade+'%'}${t.acompanhamento||t.aguardando_validacao?'<br><small>Parcial</small>':''}</td><td><button onclick="qoeCopyChargeK17(${i})">Copiar cobrança</button></td></tr>`).join('');
+};
+qoeCopyChargeK17=async function(i){
+ const t=qoeReportK17?.tecnicos?.[i];if(!t)return;
+ const msg=`Olá, ${t.tecnico}. Acompanhamento QoE de ${qoeMonthLabelK18(qoeReportK17.mes)}.\n\nHerdadas: ${t.herdadas}\nNovas recebidas: ${t.novas}\nAtuadas no mês: ${t.atuadas}\nAguardando validação da Gestão: ${t.aguardando_validacao}\nPendentes: ${t.pendentes}\n\n${t.sem_atuacao?'Não identificamos atuação registrada no mês. Precisamos avançar nas portas pendentes.':'Precisamos avançar nas pendências.'}\n${(t.portas_pendentes||[]).join(', ')||'Sem porta pendente.'}\n\nRegistre a atuação e a devolutiva no Portal. O acompanhamento parte da data/hora do registro.`;
+ try{await navigator.clipboard.writeText(msg);alert('Mensagem copiada.');}catch{prompt('Copie a mensagem:',msg);}
+};
+function qoeCurrentMonthActionsK18(){
+ const w=qoeMonthlyK18?.meses.find(m=>m.mes===qoeMonthlyK18.mes_atual);const t=w?.totais;
+ return t?{treated:t.atuadas,stable:t.estabilizadas,monitoring:t.acompanhamento,returned:t.retornos}:{treated:null,stable:null,monitoring:null,returned:null};
+}
+
 let savedOct=localStorage.getItem('qoe_v700_oct');if(savedOct){try{OCT=JSON.parse(savedOct)}catch(e){}}rebuild();
 </script>
 <div id="treatModalV7" class="modal-v7"><div class="modal-v7-card">
@@ -1095,7 +1173,7 @@ async function qoeLogin(){
  if(error)return alert('Login não realizado: '+error.message);
  await qoeCheckSession(); await qoeRemoteRefresh();
 }
-async function qoeLogout(){await qoeSb.auth.signOut();qoeCloudReady=false;qoeWeeklyDataK165=null;qoeWeeklyErrorK165='Entre na Gestão para consultar as semanas.';renderWeeks();qoeCloudMsg('desconectado');}
+async function qoeLogout(){await qoeSb.auth.signOut();qoeCloudReady=false;qoeMonthlyK18=null;qoeMonthlyErrorK18='Entre na Gestão para consultar os meses.';qoeWeeklyDataK165=null;qoeWeeklyErrorK165='Entre na Gestão para consultar as semanas.';renderWeeks();qoeCloudMsg('desconectado');}
 async function qoeCheckSession(){
  const {data}=await qoeSb.auth.getSession(); qoeCloudReady=!!data.session;
  qoeCloudMsg(qoeCloudReady?'conectado ao Supabase':'desconectado',qoeCloudReady);
@@ -1265,7 +1343,10 @@ confirmAlloc=async function(){
  window.__qoeAllocBusyK165=true;
  try{
    if(!await qoeWeeklyLoadK165())return alert(qoeWeeklyErrorK165);
-   const {error}=await qoeRpc('gestao_semanal_alocar',{p_porta:p,p_tecnico:t,p_semana_esperada:qoeWeeklyDataK165.semana_atual});
+   const previousK18=window.qoeCloudDemandByPortV711K10?.[p];
+   const transferK18=!!(previousK18?.tecnico&&previousK18.tecnico!==t&&['PENDENTE','RECORRENTE'].includes(previousK18.status));
+   if(transferK18&&!confirm('Transferir '+p+' de '+previousK18.tecnico+' para '+t+'? O histórico e o recebimento anterior serão preservados.'))return;
+   const {error}=await qoeRpc('gestao_mensal_alocar_k18',{p_porta:p,p_tecnico:t,p_mes_esperado:qoeMonthlyK18.mes_atual+'-01',p_substituir:transferK18});
    if(error)return alert('Alocação não confirmada no Supabase: '+error.message);
    _qoeConfirmAlloc();await qoeRemoteRefresh();
  }finally{window.__qoeAllocBusyK165=false;}
@@ -1315,7 +1396,7 @@ document.addEventListener('toggle',function(e){
   tratamento:['carteira','distribui','execução','execucao','tratamento','não alocado','nao alocado'],
   acompanhamento:['acompanhamento','pós-tratamento','pos-tratamento','recorrente','monitoramento','estabilizada'],
   devolutivas:['devolutiva','mdu','indoor','fila'],
-  semanal:['semana','histórico','historico','distribuída','distribuida','backup']
+  semanal:['mensal','semana','histórico','historico','distribuída','distribuida','backup']
  };
  window.qoePage=function(page){
    document.querySelectorAll('.qoe-nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
@@ -1345,7 +1426,7 @@ document.addEventListener('toggle',function(e){
      tratamento:['Tratamento','Carteira, distribuição e execução das portas em atuação.'],
      acompanhamento:['Acompanhamento','Portas tratadas em monitoramento, estabilização e recorrência.'],
      devolutivas:['Devolutivas / MDU','Retornos técnicos e demandas MDU/Indoor para análise da Gestão.'],
-     semanal:['Semanal / Histórico','Controle semanal, distribuição e histórico operacional.']
+     semanal:['Mensal / Histórico','Carteira mensal, resultados por técnico e histórico semanal preservado.']
    };
    let box=document.getElementById('qoePageTitle');
    if(!box){box=document.createElement('div');box.id='qoePageTitle';box.className='qoe-page-title';document.querySelector('main')?.before(box)}
@@ -1453,23 +1534,22 @@ document.addEventListener('DOMContentLoaded',()=>{updateExecutiveV794();
 
 <script id="v796-weekly-report">
 (function(){
- function calc(){return qoeWeeklyTotalsK165(qoeWeeklySelectedK165());}
- function pct(v){return v.toFixed(1).replace('.',',')+'%'}
+ const pct=v=>v.toFixed(1).replace('.',',')+'%';
  window.renderWeeklyV796=function(){
-   const x=calc();
-   if(!document.getElementById('wkSent'))return;
-   if(!x){['wkSent','wkDone','wkPending','wkRate','wkTech'].forEach(id=>document.getElementById(id).textContent='—');wkReading.textContent=qoeWeeklyErrorK165||'Conecte ao Supabase para carregar o resumo semanal.';return;}
-   wkSent.textContent=x.sent;wkDone.textContent=x.done;if(document.getElementById('wkNormalized'))wkNormalized.textContent=x.normalized||0;wkPending.textContent=x.pending;wkRate.textContent=pct(x.rate);wkTech.textContent=x.active+' de '+x.totalTechs;
-   wkReading.innerHTML=`Semana ${x.week}. Foram tratadas <b>${x.done} de ${x.sent} portas (${pct(x.rate)})</b>. <b>${x.normalized||0}</b> normalizaram sem atuação e não contam como produtividade. Permanecem <b>${x.pending} portas pendentes</b>. Dos ${x.totalTechs} técnicos, <b>${x.active} registraram devolutivas</b> na semana. Retiradas: ${x.withdrawn}. Sem leitura disponível: ${x.unknown}. Portas que retornaram ao tratamento podem constar em tratadas e pendentes.`;
- }
+ const w=qoeWeeklySelectedK165(),x=qoeWeeklyTotalsK165(w);if(!document.getElementById('wkSent'))return;
+ if(!x){['wkSent','wkDone','wkPending','wkRate','wkTech'].forEach(id=>document.getElementById(id).textContent='—');wkReading.textContent=qoeMonthlyErrorK18||'Entre na Gestão para carregar o resumo mensal.';return;}
+ document.getElementById('wkDone').previousElementSibling.textContent=w.mes?'Portas atuadas':'Portas tratadas (histórico)';
+ wkSent.textContent=x.sent;wkDone.textContent=w.mes?x.acted:x.done;wkPending.textContent=x.pending;wkRate.textContent=pct(x.rate);wkTech.textContent=x.active+' de '+x.totalTechs;
+ if(document.getElementById('wkNormalized'))wkNormalized.textContent=x.normalized;
+ const label=w.mes?'atuadas':'tratadas';
+ wkReading.textContent=`${x.label}: ${w.mes?x.acted:x.done} portas ${label} de ${x.sent} recebidas (${pct(x.rate)}). ${x.normalized} normalizaram sem atuação e não contam como produtividade. ${x.pending} pendentes de atuação. ${x.active} de ${x.totalTechs} técnicos registraram atuação no período. Portas com atuação anterior no mês podem também estar pendentes por retorno. ${w.mes?'Atuadas são distintas por porta, independentemente do número de devolutivas.':''}`;
+ };
  window.copyWeeklyV796=async function(){
-   if(!await qoeWeeklyLoadK165())return alert(qoeWeeklyErrorK165);
-   const x=calc();if(!x)return;
-   const msg=`QOE HFC — SEMANA ${x.week}\n\nPortas enviadas: ${x.sent}\nPortas tratadas: ${x.done}\nNormalizadas sem atuação: ${x.normalized||0}\nPortas pendentes: ${x.pending}\nNovas nesta semana: ${x.newPorts}\nRetiradas: ${x.withdrawn}\nExecução da semana: ${pct(x.rate)}\nTécnicos com devolutivas: ${x.active} de ${x.totalTechs}\n\nForam tratadas ${x.done} de ${x.sent} portas (${pct(x.rate)}). ${x.normalized||0} normalizaram sem atuação e não contam como produtividade. Permanecem ${x.pending} portas pendentes. Dos ${x.totalTechs} técnicos, ${x.active} registraram devolutivas na semana.\n\nPriorizar as portas QoE quando estiverem sem demanda na rota e registrar as atuações realizadas no portal.`;
-   try{await navigator.clipboard.writeText(msg);alert('Mensagem semanal copiada.')}catch(e){prompt('Copie a mensagem:',msg)}
- }
- document.addEventListener('DOMContentLoaded',()=>setTimeout(renderWeeklyV796,500));
- setInterval(()=>{if(document.getElementById('weeklyReportV796')?.offsetParent!==null)renderWeeklyV796()},2000);
+ if(!await qoeWeeklyLoadK165())return alert(qoeMonthlyErrorK18);const w=qoeWeeklySelectedK165(),x=qoeWeeklyTotalsK165(w);if(!x)return;
+ const msg=`QOE HFC — ${x.label}\n\nRecebidas: ${x.sent}\n${w.mes?'Atuadas':'Tratadas'}: ${w.mes?x.acted:x.done}\nNormalizadas sem atuação: ${x.normalized}\nPendentes de atuação: ${x.pending}\nNovas: ${x.newPorts}\nExecução: ${pct(x.rate)}\nTécnicos com atuação: ${x.active} de ${x.totalTechs}\n\nNormalização sem atuação não conta como produtividade. Priorize as portas QoE e registre as atuações no Portal.`;
+ try{await navigator.clipboard.writeText(msg);alert('Resumo copiado.');}catch{prompt('Copie a mensagem:',msg);}
+ };
+ document.addEventListener('DOMContentLoaded',()=>setTimeout(window.renderWeeklyV796,500));
 })();
 </script>
 
@@ -1854,23 +1934,9 @@ document.addEventListener('DOMContentLoaded',()=>{updateExecutiveV794();
    });
  }
  function weekStartDay(series){
-   // Projeto iniciado em 09/10; se a base ainda não chegou ao dia 9, usa o primeiro dia carregado.
-   const max=series.at(-1)?.day||1;
-   return max>=9?9:series[0]?.day||1;
+   return series[0]?.day||1;
  }
- function weekActions(){
-   const hist=Array.isArray(window.state?.history)?window.state.history:[];
-   const current=window.state?.currentWeek||window.state?.weeklyLedger?.week||1;
-   const treated=hist.filter(h=>!h.week||Number(h.week)===Number(current));
-   const q=window.qoeV710||{};
-   function currentWeek(arr){return (Array.isArray(arr)?arr:[]).filter(x=>!x?.raw?.week||Number(x.raw.week)===Number(current))}
-   return {
-     treated:new Set(treated.map(h=>h.porta).filter(Boolean)).size,
-     stable:currentWeek(q.stabilized).length,
-     monitoring:currentWeek(q.monitoring).length,
-     returned:currentWeek(q.returnedToTreatment).length
-   };
- }
+ function weekActions(){return qoeCurrentMonthActionsK18();}
  function svgChart(series){
    if(!series.length)return '<div class="empty">Sem leituras para montar a evolução.</div>';
    const W=820,H=270,L=48,R=18,T=18,B=38, minY=0,maxY=Math.max(25,...series.flatMap(x=>[x.daily||0,x.monthly||0]));
@@ -1878,7 +1944,7 @@ document.addEventListener('DOMContentLoaded',()=>{updateExecutiveV794();
    const y=v=>T+(H-T-B)*(1-v/maxY);
    const path=key=>series.map((d,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(d[key]||0).toFixed(1)).join(' ');
    const grid=[0,5,10,15,20,25].filter(v=>v<=maxY).map(v=>`<line x1="${L}" y1="${y(v)}" x2="${W-R}" y2="${y(v)}" stroke="#e7edf5"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="#6b7785">${v}%</text>`).join('');
-   const labels=series.map((d,i)=>`<text x="${x(i)}" y="${H-12}" text-anchor="middle" font-size="10" fill="#6b7785">${d.day}/10</text>`).join('');
+   const labels=series.map((d,i)=>`<text x="${x(i)}" y="${H-12}" text-anchor="middle" font-size="10" fill="#6b7785">${d.day}/${(document.getElementById("reportMonthK17")?.value||"2026-11").slice(5)}</text>`).join('');
    return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:650px;height:auto" aria-label="Evolução QoE">
     ${grid}
     <line x1="${L}" y1="${y(15)}" x2="${W-R}" y2="${y(15)}" stroke="#8b6b00" stroke-dasharray="6 5"/><text x="${W-R-2}" y="${y(15)-5}" text-anchor="end" font-size="10">Objetivo 15%</text>
@@ -1901,7 +1967,7 @@ document.addEventListener('DOMContentLoaded',()=>{updateExecutiveV794();
    const path=series.map((d,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(d.dailyBad).toFixed(1)).join(' ');
    const ticks=5;
    const grid=Array.from({length:ticks},(_,i)=>Math.round(minY+(maxY-minY)*i/(ticks-1))).map(v=>`<line x1="${L}" y1="${y(v)}" x2="${W-R}" y2="${y(v)}" stroke="#e7edf5"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="#6b7785">${v}</text>`).join('');
-   const labels=series.map((d,i)=>`<text x="${x(i)}" y="${H-12}" text-anchor="middle" font-size="10" fill="#6b7785">${d.day}/10</text>`).join('');
+   const labels=series.map((d,i)=>`<text x="${x(i)}" y="${H-12}" text-anchor="middle" font-size="10" fill="#6b7785">${d.day}/${(document.getElementById("reportMonthK17")?.value||"2026-11").slice(5)}</text>`).join('');
    return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;min-width:650px;height:auto" aria-label="Portas degradadas por dia">
     ${grid}
     <path d="${path}" fill="none" stroke="#b42318" stroke-width="3"/>
@@ -1930,31 +1996,31 @@ document.addEventListener('DOMContentLoaded',()=>{updateExecutiveV794();
    const c=document.getElementById('mgrChart');if(c)c.innerHTML=svgChart(m.series);
    const dc=document.getElementById('mgrDailyPortsChart');if(dc)dc.innerHTML=svgDailyPortsChart(m.series);
    const r=document.getElementById('mgrReading');if(r){
-     const trend=m.gain==null?'Ainda sem comparação semanal.':m.gain>0?`O indicador diário melhorou <b>${m.gain.toFixed(1).replace('.',',')} p.p.</b> no período.`:m.gain<0?`O indicador diário piorou <b>${Math.abs(m.gain).toFixed(1).replace('.',',')} p.p.</b> no período, enquanto a efetividade das atuações é medida separadamente.`:'O indicador diário permaneceu estável no período.';
+     const trend=m.gain==null?'Ainda sem comparação mensal.':m.gain>0?`O indicador diário melhorou <b>${m.gain.toFixed(1).replace('.',',')} p.p.</b> no período.`:m.gain<0?`O indicador diário piorou <b>${Math.abs(m.gain).toFixed(1).replace('.',',')} p.p.</b> no período, enquanto a efetividade das atuações é medida separadamente.`:'O indicador diário permaneceu estável no período.';
      r.innerHTML=`<b>Leitura gerencial:</b> ${trend} A equipe estabilizou <b>${m.a.stable}</b> porta(s) após atuação; <b>${m.newBad}</b> nova(s) degradação(ões) entraram na base no mesmo período. A média mensal está em <b>${fmt(m.last.monthly)}</b> e reage de forma gradual ao acúmulo das notas diárias.`;
    }
    window.qoeManagerMetricsV711B=m;
  }
  window.qoeCopyTeamSummaryV711B=async function(){
    render();const m=window.qoeManagerMetricsV711B;if(!m)return;
-   const txt=`QOE HFC — RESULTADO DA SEMANA\n\nPortas tratadas: ${m.a.treated}\nEstabilizadas: ${m.a.stable}\nEm acompanhamento: ${m.a.monitoring}\nRetornaram ao tratamento: ${m.a.returned}\nEfetividade: ${m.effect==null?'em apuração':fmt(m.effect)}\n\nIndicador diário atual: ${fmt(m.last.daily)}\nPrimeiro objetivo: 15%\nMeta: 10%\n\nNosso trabalho já recuperou ${m.a.stable} porta(s) com estabilidade confirmada. Seguimos acompanhando as atuações e avançando gradualmente no indicador.`;
+   const txt=`QOE HFC — RESULTADO DO MÊS\n\nPortas atuadas: ${m.a.treated}\nEstabilizadas: ${m.a.stable}\nEm acompanhamento: ${m.a.monitoring}\nRetornaram ao tratamento: ${m.a.returned}\nEfetividade: ${m.effect==null?'em apuração':fmt(m.effect)}\n\nIndicador diário atual: ${fmt(m.last.daily)}\nPrimeiro objetivo: 15%\nMeta: 10%\n\nNosso trabalho já recuperou ${m.a.stable} porta(s) com estabilidade confirmada. Seguimos acompanhando as atuações e avançando gradualmente no indicador.`;
    try{await navigator.clipboard.writeText(txt);document.getElementById('mgrCopyMsg').textContent='Mensagem copiada.'}catch(e){prompt('Copie a mensagem:',txt)}
  };
  window.qoeExportManagerCardV711B=function(){
    render();const m=window.qoeManagerMetricsV711B;if(!m)return;
    const c=document.createElement('canvas');c.width=1200;c.height=760;const g=c.getContext('2d');
-   g.fillStyle='#ffffff';g.fillRect(0,0,c.width,c.height);g.fillStyle='#142033';g.font='700 34px Arial';g.fillText('QoE HFC — Resumo semanal',60,70);
+   g.fillStyle='#ffffff';g.fillRect(0,0,c.width,c.height);g.fillStyle='#142033';g.font='700 34px Arial';g.fillText('QoE HFC — Resumo mensal',60,70);
    g.font='18px Arial';g.fillStyle='#526173';g.fillText('Resultado operacional e evolução do indicador',60,105);
    const card=(x,y,w,title,val,sub)=>{g.strokeStyle='#d9e2ef';g.strokeRect(x,y,w,110);g.fillStyle='#526173';g.font='16px Arial';g.fillText(title,x+18,y+28);g.fillStyle='#142033';g.font='700 30px Arial';g.fillText(val,x+18,y+65);g.fillStyle='#6b7785';g.font='13px Arial';g.fillText(sub,x+18,y+90)};
    card(60,145,250,'Indicador diário',fmt(m.last.daily),'Objetivo 15% • Meta 10%');card(330,145,250,'Média mensal',fmt(m.last.monthly),'Consolidação das notas diárias');card(600,145,250,'Estabilizadas',String(m.a.stable),'7 dias consecutivos ≥80');card(870,145,270,'Efetividade',m.effect==null?'Em apuração':fmt(m.effect),'Atuações concluídas');
-   g.fillStyle='#142033';g.font='700 23px Arial';g.fillText('Resultado da atuação — semana atual',60,315);
-   g.font='18px Arial';g.fillText(`Tratadas ${m.a.treated}   •   Estabilizadas ${m.a.stable}   •   Acompanhamento ${m.a.monitoring}   •   Retornaram ${m.a.returned}`,60,355);
+   g.fillStyle='#142033';g.font='700 23px Arial';g.fillText('Resultado da atuação — mês atual',60,315);
+   g.font='18px Arial';g.fillText(`Atuadas ${m.a.treated}   •   Estabilizadas ${m.a.stable}   •   Acompanhamento ${m.a.monitoring}   •   Retornaram ${m.a.returned}`,60,355);
    g.fillText(`Novas degradações ${m.newBad}   •   Saldo da base ${m.balance>0?'+':''}${m.balance} portas   •   Ganho diário ${m.gain==null?'—':(m.gain>=0?'+':'')+m.gain.toFixed(1).replace('.',',')+' p.p.'}`,60,392);
    g.fillStyle='#f5f8fc';g.fillRect(60,445,1080,180);g.fillStyle='#142033';g.font='700 21px Arial';g.fillText('Leitura gerencial',85,485);g.font='18px Arial';
    const lines=[`A atuação técnica estabilizou ${m.a.stable} porta(s) no período.`,`Ao mesmo tempo, ${m.newBad} nova(s) porta(s) entraram degradadas na base.`,`A nota diária mostra o resultado imediato; a média mensal consolida esse resultado ao longo dos dias.`,`Caminho: ${fmt(m.last.daily)} atual → 15% primeiro objetivo → 10% meta.`];
    lines.forEach((t,i)=>g.fillText(t,85,525+i*30));
    g.fillStyle='#6b7785';g.font='13px Arial';g.fillText('Gerado pelo Painel QoE HFC',60,705);
-   const a=document.createElement('a');a.download='QOE_HFC_resumo_semanal.png';a.href=c.toDataURL('image/png');a.click();
+   const a=document.createElement('a');a.download='QOE_HFC_resumo_mensal.png';a.href=c.toDataURL('image/png');a.click();
  };
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(render,800));else setTimeout(render,800);
  setInterval(render,2500);
