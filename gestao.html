@@ -193,14 +193,15 @@ tbody tr:last-child td{border-bottom:0!important}
 <meta property="og:description" content="Tratamento e Acompanhamento de Rede">
 
 </head><body>
-<header><h1>QOE HFC — Tratamento e Acompanhamento</h1><div class="sub">Porto Alegre • V7.11.1K18.0 • Distribuição mensal — em homologação</div></header>
+<header><h1>QOE HFC — Tratamento e Acompanhamento</h1><div class="sub">Porto Alegre • V7.11.1K19.0 • Mensal + acompanhamento automático + MDU — em homologação</div></header>
 
 <div class="qoe-nav-shell">
   <nav class="qoe-nav" aria-label="Navegação do painel">
     <button class="qoe-nav-btn active" data-page="visao" onclick="qoePage('visao')">Visão Geral</button>
     <button class="qoe-nav-btn" data-page="tratamento" onclick="qoePage('tratamento')">Tratamento</button>
     <button class="qoe-nav-btn" data-page="acompanhamento" onclick="qoePage('acompanhamento')">Acompanhamento</button>
-    <button class="qoe-nav-btn" data-page="devolutivas" onclick="qoePage('devolutivas')">Devolutivas / MDU</button>
+    <button class="qoe-nav-btn" data-page="devolutivas" onclick="qoePage('devolutivas')">Devolutivas</button>
+    <button class="qoe-nav-btn" data-page="mdu" onclick="qoePage('mdu')">MDU / Indoor</button>
     <button class="qoe-nav-btn" data-page="semanal" onclick="qoePage('semanal')">Mensal / Histórico</button>
     <button class="qoe-nav-btn qoe-data-btn" type="button" onclick="qoeToggleAdminV711E()">⚙ Dados</button>
   </nav>
@@ -301,8 +302,8 @@ tbody tr:last-child td{border-bottom:0!important}
 <button onclick="newWeek()">Iniciar próximo mês</button>
 <button style="border-color:#b42318;color:#b42318" onclick="resetWeeklyCount()">Preservação do histórico</button>
 </div>
-<div class="wrap"><table><thead><tr><th>Técnico</th><th>Período</th><th>Portas recebidas</th><th>Portas tratadas</th><th>Normalizadas sem atuação</th><th>Pendentes</th><th>Novas no período</th><th>Distribuição</th></tr></thead><tbody id="weeklyBody"></tbody></table></div></div>
-<div class="panel" id="weeklyTechReportK17"><h2>Execução mensal e resultado por técnico</h2><div id="techReportNoteK17" class="sub"></div><div class="wrap"><table><thead><tr><th>Técnico</th><th>Herdadas</th><th>Novas</th><th>Recebidas</th><th>Atuadas</th><th>Aguardando Gestão</th><th>Validadas</th><th>Estabilizadas</th><th>Retornos</th><th>Acompanhamento</th><th>Pendentes de atuação</th><th>Assertividade</th><th>WhatsApp</th></tr></thead><tbody id="techReportBodyK17"></tbody></table></div></div><div class="panel"><h2>Portas alocadas para tratamento</h2>
+<div class="wrap"><table><thead><tr><th>Técnico</th><th>Período</th><th>Portas recebidas</th><th>Portas tratadas</th><th>Normalizadas sem atuação</th><th>Pendentes</th><th>Novas no período</th><th>Carteira</th></tr></thead><tbody id="weeklyBody"></tbody></table></div></div>
+<div class="panel" id="weeklyTechReportK17"><h2>Execução mensal e resultado por técnico</h2><div id="techReportNoteK17" class="sub"></div><div class="wrap"><table><thead><tr><th>Técnico</th><th>Herdadas</th><th>Novas</th><th>Recebidas</th><th>Atuadas</th><th>MDU pendente (atual)</th><th>Registros aceitos</th><th>Estabilizadas</th><th>Retornos</th><th>Acompanhamento</th><th>Pendentes de atuação</th><th>Assertividade</th><th>WhatsApp</th></tr></thead><tbody id="techReportBodyK17"></tbody></table></div></div><div class="panel"><h2>Portas alocadas para tratamento</h2>
 <div class="sub">Selecione um técnico para visualizar somente a carteira dele.</div>
 <div id="techCards" class="techs"></div>
 <div class="toolbar">
@@ -322,20 +323,19 @@ tbody tr:last-child td{border-bottom:0!important}
 <button onclick="clearQueueFilters()">Limpar filtros</button>
 <span id="queueCount"></span>
 </div><div class="wrap"><table><thead><tr><th>Alocação</th><th>Região</th><th>Node</th><th>Porta</th><th>Média histórica*</th><th>Média 30d</th><th>Nota atual</th><th>Status</th><th>Ações</th></tr></thead><tbody id="queue"></tbody></table></div></div>
-<div class="panel" id="pendingReturnsPanelV711K"><h2>🔔 Devolutivas pendentes de validação <span id="pendingReturnsCountV711K" style="font-size:.8em"></span></h2>
-<div class="sub">Atuações registradas pelo Portal Técnico. Validar confirma a atuação; não significa que a porta estabilizou.</div>
-<div class="wrap"><table><thead><tr><th>Atuação</th><th>Técnico</th><th>Porta</th><th>Tipo</th><th>O que foi feito</th><th>Endereço</th><th>Observação</th><th>Ação</th></tr></thead><tbody id="pendingReturnsV711K"><tr><td colspan="8">Atualize do Supabase para buscar devolutivas.</td></tr></tbody></table></div></div>
+<div class="panel" id="pendingReturnsPanelV711K"><h2>Fluxo automático após execução</h2><p>Atuação executada segue para acompanhamento na data do registro, sem aprovação manual. Encaminhamentos MDU e pedidos de apoio permanecem pendentes. Sete dias consecutivos ≥80 confirmam estabilização.</p><table hidden><tbody id="pendingReturnsV711K"></tbody></table></div>
 
 <div class="panel"><h2>Devolutivas recebidas</h2>
-<div class="sub">Retornos enviados pelo Portal Técnico ou registrados pela Gestão. A atuação não significa estabilização; a porta segue para acompanhamento QoE.</div>
+<div class="sub">Retornos enviados pelo Portal Técnico ou registrados pela Gestão. Atuação executada segue para acompanhamento automático; encaminhamento e apoio não contam como execução.</div>
 <div class="wrap"><table><thead><tr><th>Data</th><th>Técnico</th><th>Porta</th><th>Tipo</th><th>O que foi feito</th><th>Endereço</th><th>Observação</th><th>Gestor</th></tr></thead><tbody id="returnsV78"></tbody></table></div></div>
 
 <div class="panel"><h2>Portas Recorrentes</h2>
 <div class="sub">Portas que já tiveram atuação anterior e voltaram a degradar. A recorrência não fica presa ao técnico anterior.</div>
 <div class="wrap"><table><thead><tr><th>Porta</th><th>Node</th><th>Recorrência</th><th>Nota atual</th><th>Média 30d</th><th>Último técnico</th><th>Última atuação</th><th>O que já foi feito</th></tr></thead><tbody id="recurrentV78"></tbody></table></div></div>
 
+<div class="panel" id="mduManagementK19"><h2>MDU / Indoor — Endereços e atendimento</h2><p>Encaminhar não significa executar. Cada endereço mantém seu responsável e sua execução. O texto original permanece preservado.</p><details><summary>+ Cadastrar encaminhamento MDU/Indoor</summary><label>Demanda de origem</label><select id="mduDemandK19"></select><label>Tipo</label><select id="mduTypeK19"><option>MDU</option><option>INDOOR</option></select><label>Endereços (um por linha)</label><textarea id="mduAddressesK19" rows="3"></textarea><label>Descrição / tratativa</label><textarea id="mduDescK19" rows="3"></textarea><button onclick="qoeMduCreateK19()">Cadastrar encaminhamento</button></details><div class="toolbar"><input id="mduSearchK19" placeholder="Buscar porta, endereço, técnico ou responsável" oninput="qoeMduRenderK19()"><select id="mduFilterK19" onchange="qoeMduRenderK19()"><option value="">Todos os atendimentos</option><option>PENDENTE</option><option>ENCAMINHADO</option><option>EXECUTADO</option></select><span id="mduCountK19"></span></div><div class="wrap"><table><thead><tr><th>Data</th><th>Porta / Node</th><th>Origem</th><th>Endereço</th><th>Tratativa</th><th>Direcionamento</th><th>Execução</th></tr></thead><tbody id="mduBodyK19"></tbody></table></div></div>
 <div class="panel"><h2>Fila MDU / Indoor</h2>
-<div class="sub">Demandas secundárias geradas a partir das devolutivas técnicas para validação e acompanhamento da Gestão.</div>
+<div class="sub">Histórico original das demandas secundárias, preservado. O direcionamento por endereço está na lista MDU acima.</div>
 <div class="wrap"><table><thead><tr><th>Data</th><th>Tipo</th><th>Porta</th><th>Técnico</th><th>Endereço ofensor</th><th>Devolutiva</th><th>Status</th></tr></thead><tbody id="secondaryV78"></tbody></table></div></div>
 
 <div class="panel"><h2>⚠️ Portas Oscilantes</h2>
@@ -465,7 +465,7 @@ function tr(x,allocated){
  const m30=Number.isFinite(+x.m30)?(+x.m30).toFixed(1):'—';
  const cur=Number.isFinite(+x.cur)?Math.round(+x.cur):'—';
  const multi=Number.isFinite(+x.multi)?+x.multi:1;
- return `<tr data-porta="${x.porta}" data-node="${x.node||''}" data-score="${Number.isFinite(+x.cur)?+x.cur:''}" data-tech="${tech}"><td>${who}</td><td><span class="reg ${reg.toLowerCase()}">${reg}</span><small>${bairro}</small></td><td><b>${x.node||'-'}</b><small>${multi} porta(s) degradada(s) no node</small></td><td><b>${x.porta}</b></td><td>${hist}</td><td>${m30}</td><td><b>${cur}</b></td><td><span class="status ${allocated?'alocada':'carteira'}">${allocated?'ALOCADA':'CARTEIRA'}</span></td><td class="actions">${allocated?`<button class="treat" onclick="treated('${x.porta}')">Tratada hoje</button><button onclick="openModal('${x.porta}')">Trocar</button><button onclick="removeAlloc('${x.porta}')">Retirar</button>`:`<button onclick="openModal('${x.porta}')">Alocar</button>`}</td></tr>`;
+ return `<tr data-porta="${x.porta}" data-node="${x.node||''}" data-score="${Number.isFinite(+x.cur)?+x.cur:''}" data-tech="${tech}"><td>${who}</td><td><span class="reg ${reg.toLowerCase()}">${reg}</span><small>${bairro}</small></td><td><b>${x.node||'-'}</b><small>${multi} porta(s) degradada(s) no node</small></td><td><b>${x.porta}</b>${qoeReturnNoticeK19(x.porta)}</td><td>${hist}</td><td>${m30}</td><td><b>${cur}</b></td><td><span class="status ${allocated?'alocada':'carteira'}">${allocated?'ALOCADA':'CARTEIRA'}</span></td><td class="actions">${allocated?`<button class="treat" onclick="treated('${x.porta}')">Tratada hoje</button><button onclick="openModal('${x.porta}')">Trocar</button><button onclick="removeAlloc('${x.porta}')">Retirar</button>`:`<button onclick="openModal('${x.porta}')">Alocar</button>`}</td></tr>`;
 }
 
 let selectedTech='';
@@ -507,7 +507,7 @@ async function qoeReportLoadK17(){
  qoeReportK17=data;
  const rows=data.tecnicos||[];
  document.getElementById('techReportNoteK17').textContent='Semana '+data.semana+' • resultados das atuações desta semana, atualizados após o fechamento. Assertividade = estabilizadas ÷ (estabilizadas + retornos). Casos em acompanhamento não entram no denominador.';
- panel.innerHTML=rows.map((t,i)=>`<tr${t.sem_atuacao?' style="background:#fff1f2"':''}><td><b>${escV78(t.tecnico)}</b><br><small>${t.sem_atuacao?'SEM ATUAÇÃO REAL NA SEMANA':t.aguardando_validacao?'Há devolutivas aguardando a Gestão':'Execução registrada ou sem pendência de atuação'}</small>${t.datas_legadas?'<br><small>Referência: data do registro no Portal.</small>':''}</td><td>${t.herdadas}</td><td>${t.novas}</td><td>${t.recebidas}</td><td>${t.atuadas}<br><small>${t.devolutivas} devolutivas</small></td><td>${t.aguardando_validacao}</td><td>${t.validadas}</td><td>${t.estabilizadas}</td><td>${t.retornos}</td><td>${t.acompanhamento}</td><td>${t.pendentes}</td><td>${t.assertividade==null?'Aguardando resultado':t.assertividade+'%'}${t.acompanhamento||t.aguardando_validacao?'<br><small>Parcial</small>':''}</td><td><button onclick="qoeCopyChargeK17(${i})">Copiar cobrança</button></td></tr>`).join('');
+ panel.innerHTML=rows.map((t,i)=>`<tr${t.sem_atuacao?' style="background:#fff1f2"':''}><td><b>${escV78(t.tecnico)}</b><br><small>${t.sem_atuacao?'SEM ATUAÇÃO REAL NA SEMANA':t.aguardando_validacao?'Há pendência de apoio ou encaminhamento':'Execução registrada ou sem pendência de atuação'}</small>${t.datas_legadas?'<br><small>Referência: data do registro no Portal.</small>':''}</td><td>${t.herdadas}</td><td>${t.novas}</td><td>${t.recebidas}</td><td>${t.atuadas}<br><small>${t.devolutivas} devolutivas</small></td><td>${t.mdu_pendentes||0}</td><td>${t.validadas}</td><td>${t.estabilizadas}</td><td>${t.retornos}</td><td>${t.acompanhamento}</td><td>${t.pendentes}</td><td>${t.assertividade==null?'Aguardando resultado':t.assertividade+'%'}${t.acompanhamento||t.aguardando_validacao?'<br><small>Parcial</small>':''}</td><td><button onclick="qoeCopyChargeK17(${i})">Copiar cobrança</button></td></tr>`).join('');
 }
 async function qoeCopyChargeK17(i){
  const t=qoeReportK17?.tecnicos?.[i];if(!t)return;
@@ -638,13 +638,13 @@ function renderTechCards(){
   techCards.innerHTML=names.map(n=>{
     const qty=allocatedRows.filter(r=>r.dataset.tech===n).length;
     const key=state.currentWeek+'|'+n;
-    const dist=state.monthlyDistributed?.[qoeMonthlyK18?.mes_atual]?.[n];
+    const dist=null;
     return `<div class="techcard ${selectedTech===n?'active':''} ${dist?'distributed':''}">
       <button style="border:0;background:transparent;padding:0;text-align:left;width:100%;color:inherit" onclick="filterTech('${n.replace(/'/g,"\\'")}')">
         <b>${n}</b><span>${qty} portas</span><small>Clique para ver somente esta carteira</small>
         ${dist?`<span class="distbadge">DISTRIBUÍDA • ${dist.date}</span>`:''}
       </button>
-      <button class="distbtn ${dist?'done':''}" style="margin-top:8px;width:100%" onclick="event.stopPropagation();toggleDistributed('${n.replace(/'/g,"\\'")}')">${dist?'Lista distribuída ✓':'Marcar lista como distribuída'}</button>
+
     </div>`;
   }).join('');
   techFilter.innerHTML='<option value="">Todos os técnicos</option>'+names.map(n=>`<option ${selectedTech===n?'selected':''}>${n}</option>`).join('');
@@ -803,7 +803,7 @@ async function copyText(){
  // Busca os tokens exclusivamente pela RPC autenticada da gestão.
  let tokenByTech={};
  if(await qoeCheckSession()){
-   const snap=await qoeRpc('gestao_snapshot_k17');
+   const snap=await qoeRpc('gestao_snapshot_k19');
    if(!snap.error && snap.data && Array.isArray(snap.data.tecnicos)){
      snap.data.tecnicos.forEach(t=>{if(t.nome&&t.token_acesso)tokenByTech[t.nome]=t.token_acesso;});
    }
@@ -853,7 +853,7 @@ async function copyText(){
 const MANAGERS_V7=['Ayrã','Adair','Claudionei','Raphael Castro','Rodrigo Torres'];
 let treatTargetV7=null;
 function ensureV7(){state.demandManager=state.demandManager||{};state.treatmentDetails=state.treatmentDetails||{};state.secondaryQueue=state.secondaryQueue||[];}
-function openTreatV7(p){ensureV7();treatTargetV7=p;const x=portfolio.find(z=>z.porta===p)||{};treatPortV7.innerHTML='<b>'+p+'</b>'+(x.node?' • '+x.node:'')+(state.assign[p]?' • Técnico: '+state.assign[p]:'');managerV7.value=state.demandManager[p]||'';actionTypeV7.value='';returnV7.value='';addressV7.value='';obsV7.value='';treatModalV7.classList.add('open');}
+function openTreatV7(p){ensureV7();treatTargetV7=p;const x=portfolio.find(z=>z.porta===p)||{};treatPortV7.innerHTML='<b>'+p+'</b>'+(x.node?' • '+x.node:'')+(state.assign[p]?' • Técnico: '+state.assign[p]:'');managerV7.value=state.demandManager[p]||'';actionTypeV7.value='';returnV7.value='';addressV7.value='';obsV7.value='';document.getElementById('purposeK19').value='ENCAMINHAMENTO';qoePurposeFieldsK19();treatModalV7.classList.add('open');}
 function closeTreatV7(){treatModalV7.classList.remove('open');treatTargetV7=null;}
 function confirmTreatV7(){ensureV7();const p=treatTargetV7;if(!p)return;const manager=managerV7.value,type=actionTypeV7.value,ret=returnV7.value.trim(),addr=addressV7.value.trim(),obs=obsV7.value.trim();if(!manager)return alert('Selecione o gestor demandante.');if(!type)return alert('Selecione o tipo de atuação.');if(!ret)return alert('Informe o que foi feito ou a devolutiva.');if((type==='MDU'||type==='Indoor')&&!addr)return alert('Informe o endereço ofensor.');const x=portfolio.find(z=>z.porta===p)||{},tech=state.assign[p]||'';state.demandManager[p]=manager;const d={date:new Date().toLocaleDateString('pt-BR'),time:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),porta:p,node:x.node||'',tech,manager,type,returnText:ret,address:addr,obs,before:x.m30,current:x.cur};(state.treatmentDetails[p]??=[]).push(d);if(type==='MDU'||type==='Indoor')state.secondaryQueue.push({...d,status:'Nova demanda'});state.history.push({date:d.date,time:d.time,porta:p,node:x.node,tech,before:x.m30,current:x.cur,active:true,week:state.currentWeek,manager,type,returnText:ret,address:addr,obs});if(state.weeklyLedger&&state.weeklyLedger.received&&state.weeklyLedger.received[tech]){state.weeklyLedger.treated[tech]=state.weeklyLedger.treated[tech]||[];if(!state.weeklyLedger.treated[tech].includes(p))state.weeklyLedger.treated[tech].push(p);}delete state.assign[p];persist();closeTreatV7();rebuild();alert(type==='MDU'||type==='Indoor'?'Tratativa salva e demanda '+type+' criada.':'Tratativa salva e porta enviada para acompanhamento.');}
 
@@ -1102,7 +1102,7 @@ renderWeeks=function(){
  else{
  const previous=sel.value;const periods=[...qoeMonthlyK18.meses.map(m=>({key:m.mes,label:qoePeriodLabelK18(m)+(m.fechado_em?' — encerrado':' — atual')})),...(qoeMonthlyK18.semanas_legadas||[]).map(w=>({key:'S:'+w.semana,label:qoePeriodLabelK18(w)}))];
  sel.innerHTML=periods.map(p=>`<option value="${p.key}">${p.label}</option>`).join('');sel.value=periods.some(p=>p.key===previous)?previous:qoeMonthlyK18.mes_atual;
- const w=qoeWeeklySelectedK165();body.innerHTML=w.tecnicos.map(t=>`<tr><td><b>${qoeWeeklyEscapeK165(t.tecnico)}</b></td><td>${qoePeriodLabelK18(w)}</td><td>${t.recebidas}</td><td>${t.tratadas}</td><td>${t.normalizadas}</td><td>${t.pendentes}</td><td>${t.novas}</td><td>${w.distribuidas?.[t.tecnico]?'Distribuída ✓ '+qoeWeeklyEscapeK165(w.distribuidas[t.tecnico].date):'Não marcada'}</td></tr>`).join('');
+ const w=qoeWeeklySelectedK165();body.innerHTML=w.tecnicos.map(t=>`<tr><td><b>${qoeWeeklyEscapeK165(t.tecnico)}</b></td><td>${qoePeriodLabelK18(w)}</td><td>${t.recebidas}</td><td>${t.tratadas}</td><td>${t.normalizadas}</td><td>${t.pendentes}</td><td>${t.novas}</td><td>${w.mes?'Disponível no Portal':(w.distribuidas?.[t.tecnico]?'Distribuída ✓ '+qoeWeeklyEscapeK165(w.distribuidas[t.tecnico].date):'Sem marcação histórica')}</td></tr>`).join('');
  }
  const note=document.getElementById('weeklySyncK165');const w=qoeWeeklySelectedK165();
  if(note)note.textContent=qoeMonthlyErrorK18||(w?.mes?`${qoePeriodLabelK18(w)} • carteira mensal compartilhada. Pendências herdadas + novas portas escolhidas manualmente.${w.migracao==='MIGRACAO_NOVEMBRO'?' Novembro consolidado na migração: pendências recuperadas, recebimentos e registros de novembro.':''} ${(w.conflitos||[]).length?'ATENÇÃO: '+w.conflitos.length+' porta(s) possuem demandas ativas duplicadas. Nenhuma demanda foi excluída.':''}`:w?'Histórico semanal preservado na migração, somente consulta.':'');
@@ -1133,12 +1133,12 @@ qoeReportLoadK17=async function(){
  if(!w.mes){qoeReportK17=null;body.innerHTML='<tr><td colspan="13">Resumo mensal preservado na tabela acima. O relatório de resultado passa a ser mensal a partir de novembro.</td></tr>';return;}
  // Relatório e tabela usam a mesma resposta de banco, sem uma segunda leitura concorrente.
  qoeReportK17=w;
- document.getElementById('techReportNoteK17').textContent=qoePeriodLabelK18(w)+' • Atuadas = portas com atuação registrada no mês. Tratadas = atuações validadas. Assertividade = estabilizadas ÷ (estabilizadas + retornos). Acompanhamentos não entram nesse denominador. Contagens por técnico podem repetir uma porta transferida; o resumo geral conta portas físicas distintas.';
- body.innerHTML=w.tecnicos.map((t,i)=>`<tr${t.sem_atuacao?' style="background:#fff1f2"':''}><td><b>${qoeWeeklyEscapeK165(t.tecnico)}</b><br><small>${t.sem_atuacao?'SEM ATUAÇÃO NO MÊS':t.aguardando_validacao?'Há devolutivas aguardando a Gestão':'Execução registrada ou sem pendência de atuação'}</small></td><td>${t.herdadas}</td><td>${t.novas}</td><td>${t.recebidas}</td><td>${t.atuadas}<br><small>${t.devolutivas} devolutivas</small></td><td>${t.aguardando_validacao}</td><td>${t.validadas}</td><td>${t.estabilizadas}</td><td>${t.retornos}</td><td>${t.acompanhamento}</td><td>${t.pendentes}</td><td>${t.assertividade==null?'Aguardando resultado':t.assertividade+'%'}${t.acompanhamento||t.aguardando_validacao?'<br><small>Parcial</small>':''}</td><td><button onclick="qoeCopyChargeK17(${i})">Copiar cobrança</button></td></tr>`).join('');
+ document.getElementById('techReportNoteK17').textContent=qoePeriodLabelK18(w)+' • Atuadas = portas com atuação registrada no mês. Tratadas = atuações executadas aceitas automaticamente. Assertividade = estabilizadas ÷ (estabilizadas + retornos). Acompanhamentos não entram nesse denominador. Contagens por técnico podem repetir uma porta transferida; o resumo geral conta portas físicas distintas.';
+ body.innerHTML=w.tecnicos.map((t,i)=>`<tr${t.sem_atuacao?' style="background:#fff1f2"':''}><td><b>${qoeWeeklyEscapeK165(t.tecnico)}</b><br><small>${t.sem_atuacao?'SEM ATUAÇÃO NO MÊS':t.aguardando_validacao?'Há pendência de apoio ou encaminhamento':'Execução registrada ou sem pendência de atuação'}</small></td><td>${t.herdadas}</td><td>${t.novas}</td><td>${t.recebidas}</td><td>${t.atuadas}<br><small>${t.devolutivas} devolutivas</small></td><td>${t.mdu_pendentes||0}</td><td>${t.validadas}</td><td>${t.estabilizadas}</td><td>${t.retornos}</td><td>${t.acompanhamento}</td><td>${t.pendentes}</td><td>${t.assertividade==null?'Aguardando resultado':t.assertividade+'%'}${t.acompanhamento||t.aguardando_validacao?'<br><small>Parcial</small>':''}</td><td><button onclick="qoeCopyChargeK17(${i})">Copiar cobrança</button></td></tr>`).join('');
 };
 qoeCopyChargeK17=async function(i){
  const t=qoeReportK17?.tecnicos?.[i];if(!t)return;
- const msg=`Olá, ${t.tecnico}. Acompanhamento QoE de ${qoeMonthLabelK18(qoeReportK17.mes)}.\n\nHerdadas: ${t.herdadas}\nNovas recebidas: ${t.novas}\nAtuadas no mês: ${t.atuadas}\nAguardando validação da Gestão: ${t.aguardando_validacao}\nPendentes: ${t.pendentes}\n\n${t.sem_atuacao?'Não identificamos atuação registrada no mês. Precisamos avançar nas portas pendentes.':'Precisamos avançar nas pendências.'}\n${(t.portas_pendentes||[]).join(', ')||'Sem porta pendente.'}\n\nRegistre a atuação e a devolutiva no Portal. O acompanhamento parte da data/hora do registro.`;
+ const msg=`Olá, ${t.tecnico}. Acompanhamento QoE de ${qoeMonthLabelK18(qoeReportK17.mes)}.\n\nHerdadas: ${t.herdadas}\nNovas recebidas: ${t.novas}\nAtuadas no mês: ${t.atuadas}\nEndereços MDU pendentes: ${t.mdu_pendentes||0}\nPendentes: ${t.pendentes}\n\n${t.sem_atuacao?'Não identificamos atuação registrada no mês. Precisamos avançar nas portas pendentes.':'Precisamos avançar nas pendências.'}\n${(t.portas_pendentes||[]).join(', ')||'Sem porta pendente.'}\n\nRegistre a atuação e a devolutiva no Portal. O acompanhamento parte da data/hora do registro.`;
  try{await navigator.clipboard.writeText(msg);alert('Mensagem copiada.');}catch{prompt('Copie a mensagem:',msg);}
 };
 function qoeCurrentMonthActionsK18(){
@@ -1146,13 +1146,49 @@ function qoeCurrentMonthActionsK18(){
  return t?{treated:t.atuadas,stable:t.estabilizadas,monitoring:t.acompanhamento,returned:t.retornos}:{treated:null,stable:null,monitoring:null,returned:null};
 }
 
+// K19: MDU por endereço, sem aprovação manual de atuação.
+let qoeMduK19=[],qoeMduBusyK19=new Set();
+function qoePurposeK19(type,id){const s=String(type||'').toUpperCase();if(['SEM OPORTUNIDADE','SEM_OPORTUNIDADE','NECESSITA APOIO','NECESSITA_APOIO'].includes(s))return 'DEVOLUTIVA';return ['MDU','INDOOR'].includes(s)?document.getElementById(id).value:'EXECUTADA';}
+function qoePurposeFieldsK19(){const t=document.getElementById('actionTypeV7')?.value;const box=document.getElementById('purposeBoxK19');if(box)box.hidden=!['MDU','Indoor'].includes(t);}
+function qoeReturnNoticeK19(porta){const a=window.qoeCloudDemandByPortV711K10?.[porta]?.retorno_tratamento;return a?.mensagem?`<small style="color:#b42318;font-weight:700">${escV78(a.mensagem)}</small>`:'';}
+renderPendingReturnsV711K=function(){const e=document.getElementById('pendingReturnsV711K');if(e)e.innerHTML='';};
+// O histórico recebido vem do banco, independente de validação ou localStorage.
+renderReturnsV78=function(){
+ ensureV7();const el=document.getElementById('returnsV78');if(!el)return;
+ const mapped=window.qoeCloudAllDemandsK19||{};
+ const trs=window.qoeCloudTratativasV711K10||[];
+ const cloud=trs.map(t=>{const d=mapped[t.demanda_id]||Object.values(window.qoeCloudDemandByPortV711K10||{}).find(d=>d.demanda_id===t.demanda_id)||{};return {cloudTratativaId:t.id,date:qoeFmtCloudDateV711K(t.criado_em),tech:t.tecnico||d.tecnico||'—',porta:t.porta||d.porta||'—',type:t.tipo,returnText:t.descricao,address:t.endereco,obs:t.observacao,manager:t.gestor||d.gestor,finalidade:t.finalidade};});
+ const ids=new Set(cloud.map(x=>x.cloudTratativaId));const rows=[...cloud,...(state.history||[]).filter(h=>(h.returnText||h.type)&&!ids.has(h.cloudTratativaId))];
+ el.innerHTML=rows.length?rows.map(h=>`<tr><td>${escV78(histDateV78(h))}</td><td>${escV78(h.tech)}</td><td><b>${escV78(h.porta)}</b></td><td>${escV78(String(h.type||'').replaceAll('_',' '))}<small>${escV78(h.finalidade||'Registro anterior')}</small></td><td>${escV78(h.returnText||'—')}</td><td>${escV78(h.address||'—')}</td><td>${escV78(h.obs||'—')}</td><td>${escV78(h.manager||'—')}</td></tr>`).join(''):'<tr><td colspan="8">Nenhuma devolutiva recebida.</td></tr>';
+};
+function qoeMduRenderK19(){
+ const body=document.getElementById('mduBodyK19');if(!body)return;
+ const status=document.getElementById('mduFilterK19')?.value||'';const search=(document.getElementById('mduSearchK19')?.value||'').toLowerCase();
+ const rows=qoeMduK19.filter(r=>(!status||r.situacao===status)&&(!search||[r.porta,r.node,r.endereco,r.responsavel,r.tecnico].join(' ').toLowerCase().includes(search)));
+ document.getElementById('mduCountK19').textContent=rows.length+' endereço(s) nesta visão';
+ body.innerHTML=rows.length?rows.map(r=>`<tr><td>${escV78(qoeFmtCloudDateV711K(r.criada_em))}</td><td><b>${escV78(r.porta)}</b><small>${escV78(r.node||'')}</small></td><td>${escV78(r.tecnico||'—')}<small>Origem: ${escV78(r.demanda_origem_id)}</small></td><td>${escV78(r.tipo)}<br><b>${escV78(r.endereco)}</b><details><summary>Endereços originais</summary>${escV78(r.endereco_original)}</details></td><td>${escV78(r.descricao||'—')}<small>Tratativa de origem: ${escV78(r.tratativa_origem_id||'cadastro da Gestão')}</small></td><td><input aria-label="Responsável" id="mduOwnerK19-${r.id}" value="${escV78(r.responsavel||'')}" ${r.executada_em?'disabled':''}><button ${r.executada_em?'disabled':''} onclick="qoeMduDirectK19('${r.id}')">Salvar direcionamento</button><button onclick="qoeMduCopyK19('${r.id}')">Copiar endereço</button></td><td><b>${escV78(r.situacao)}</b><small>Status de origem: ${escV78(r.status_origem||'—')}</small>${r.executada_em?`<small>${escV78(qoeFmtCloudDateV711K(r.executada_em))}</small><div>${escV78(r.descricao_execucao||'')}</div>`:`<textarea id="mduExecutionK19-${r.id}" placeholder="Descreva a execução recebida da equipe"></textarea><button onclick="qoeMduExecuteK19('${r.id}')">Registrar execução</button>`}</td></tr>`).join(''):'<tr><td colspan="7">Nenhum endereço nesta visão.</td></tr>';
+ const sel=document.getElementById('mduDemandK19');const previous=sel.value;
+ const demands=Object.values(window.qoeCloudAllDemandsK19||{}).filter(d=>['PENDENTE','RECORRENTE'].includes(d.status)&&!d.observacao_pre_atuacao);
+ sel.innerHTML='<option value="">Selecione porta / demanda de origem</option>'+demands.map(d=>`<option value="${escV78(d.demanda_id)}">${escV78(d.porta)} — ${escV78(d.tecnico||'')}</option>`).join('');if(demands.some(d=>d.demanda_id===previous))sel.value=previous;
+}
+async function qoeMduActionK19(key,rpc,args){
+ if(qoeMduBusyK19.has(key))return;qoeMduBusyK19.add(key);
+ try{const {data,error}=await qoeRpc(rpc,args);if(error)throw error;await qoeRemoteRefresh();if(data?.mensagem)alert(data.mensagem);return data;}
+ catch(e){alert('Não foi possível confirmar: '+(e.message||e));}
+ finally{qoeMduBusyK19.delete(key);}
+}
+async function qoeMduDirectK19(id){const r=qoeMduK19.find(r=>r.id===id);if(!r)return;const name=document.getElementById('mduOwnerK19-'+id).value.trim();if(!name)return alert('Informe responsável ou equipe.');return qoeMduActionK19(id,'gestao_mdu_direcionar_k19',{p_endereco:id,p_responsavel:name,p_versao:r.versao});}
+async function qoeMduExecuteK19(id){const r=qoeMduK19.find(r=>r.id===id);if(!r)return;const desc=document.getElementById('mduExecutionK19-'+id).value.trim();if(!r.responsavel)return alert('Salve primeiro o responsável pelo atendimento.');if(!desc)return alert('Descreva a execução.');if(!confirm('Registrar a execução deste endereço? Outros endereços pendentes permanecem na fila.'))return;return qoeMduActionK19(id,'gestao_mdu_executar_k19',{p_endereco:id,p_descricao:desc,p_versao:r.versao});}
+async function qoeMduCreateK19(){const demand=document.getElementById('mduDemandK19').value,desc=document.getElementById('mduDescK19').value.trim(),addresses=document.getElementById('mduAddressesK19').value.split('\n').map(x=>x.trim()).filter(Boolean);if(!demand||!desc||!addresses.length)return alert('Informe demanda de origem, descrição e pelo menos um endereço.');const data=await qoeMduActionK19('novo','gestao_mdu_cadastrar_k19',{p_demanda:demand,p_tipo:document.getElementById('mduTypeK19').value,p_enderecos:addresses,p_descricao:desc});if(data){document.getElementById('mduDescK19').value='';document.getElementById('mduAddressesK19').value='';alert('Endereços incluídos na fila MDU/Indoor.');}}
+async function qoeMduCopyK19(id){const r=qoeMduK19.find(r=>r.id===id);if(!r)return;const msg=`MDU/Indoor — ${r.porta}\nNode: ${r.node||'—'}\nEndereço: ${r.endereco}\nResponsável: ${r.responsavel||'A definir'}\nDescrição: ${r.descricao||'—'}`;try{await navigator.clipboard.writeText(msg);alert('Endereço copiado.');}catch{prompt('Copie:',msg);}}
+
 let savedOct=localStorage.getItem('qoe_v700_oct');if(savedOct){try{OCT=JSON.parse(savedOct)}catch(e){}}rebuild();
 </script>
 <div id="treatModalV7" class="modal-v7"><div class="modal-v7-card">
 <h3>Registrar tratativa</h3><div id="treatPortV7" class="v7-sub"></div>
 <div class="v7-grid"><div class="v7-field"><label>Gestor demandante</label><select id="managerV7"><option value="">Selecione...</option><option>Ayrã</option><option>Adair</option><option>Claudionei</option><option>Raphael Castro</option><option>Rodrigo Torres</option></select></div>
-<div class="v7-field"><label>Tipo de atuação</label><select id="actionTypeV7"><option value="">Selecione...</option><option>Manutenção Coaxial</option><option>MDU</option><option>Indoor</option><option>Sem oportunidade</option><option>Necessita apoio</option><option>Outro</option></select></div></div>
-<div class="v7-field"><small>O acompanhamento usa automaticamente a data/hora deste registro.</small><label>O que foi feito / devolutiva</label><textarea id="returnV7" placeholder="Descreva a atuação realizada ou a devolutiva recebida do técnico."></textarea></div>
+<div class="v7-field"><label>Tipo de atuação</label><select id="actionTypeV7" onchange="qoePurposeFieldsK19()"><option value="">Selecione...</option><option>Manutenção Coaxial</option><option>MDU</option><option>Indoor</option><option>Sem oportunidade</option><option>Necessita apoio</option><option>Outro</option></select></div></div>
+<div class="v7-field"><div id="purposeBoxK19" hidden><label>Este registro é</label><select id="purposeK19"><option value="ENCAMINHAMENTO">Encaminhamento para MDU/Indoor — ainda não executado</option><option value="EXECUTADA">Atuação executada nos endereços informados</option></select></div><small>Atuação executada inicia acompanhamento automático. Encaminhamento e pedido de apoio permanecem pendentes.</small><label>O que foi feito / devolutiva</label><textarea id="returnV7" placeholder="Descreva a atuação realizada ou a devolutiva recebida do técnico."></textarea></div>
 <div class="v7-field"><label>Endereço ofensor (quando aplicável)</label><input id="addressV7" placeholder="Rua, número, condomínio/local..."></div>
 <div class="v7-field"><label>Observação</label><textarea id="obsV7" placeholder="Informações adicionais."></textarea></div>
 <div class="v7-actions"><button onclick="closeTreatV7()">Cancelar</button><button class="primary" onclick="confirmTreatV7()">Salvar e enviar para acompanhamento</button></div>
@@ -1233,7 +1269,7 @@ async function qoeLoadDailySnapshotV711K15(){
 async function qoeProcessMonitoringFromDailyV711K13(){
  if(!await qoeCheckSession())return {processed:0};
  // A RPC consulta leituras históricas reais e processa os monitoramentos antes do snapshot.
- const {data,error}=await qoeRpc('gestao_snapshot_k17');if(error)throw error;
+ const {data,error}=await qoeRpc('gestao_snapshot_k19');if(error)throw error;
  return {processed:Array.isArray(data?.demandas)?data.demandas.length:0};
 }
 
@@ -1241,12 +1277,12 @@ async function qoeRemoteRefresh(){
  if(!await qoeCheckSession())return;
  // K15: antes de montar carteira/indicadores, busca a última base diária oficial.
  await qoeLoadDailySnapshotV711K15();
- let {data,error}=await qoeRpc('gestao_snapshot_k17');
+ let {data,error}=await qoeRpc('gestao_snapshot_k19');
  if(!error&&data&&!data.meses?.includes('2026-09')){
    const legacy={mes:'2026-09',oct:Object.fromEntries(Object.entries(SEP).map(([p,v])=>[p,[v[0],Object.fromEntries(v[1].map((n,i)=>[String(i+1),n]))]]))};
    const imported=await qoeRpc('gestao_importar_legado_k17',{p_payload:legacy});
    if(imported.error)return alert('Não foi possível preservar a base fechada de setembro: '+imported.error.message);
-   ({data,error}=await qoeRpc('gestao_snapshot_k17'));
+   ({data,error}=await qoeRpc('gestao_snapshot_k19'));
  }
 
  if(error)return alert('Não foi possível ler o banco: '+error.message);
@@ -1267,6 +1303,7 @@ async function qoeRemoteRefresh(){
      }
    });
    window.qoeCloudTratativasV711K10=Array.isArray(data.tratativas)?data.tratativas:[];
+   window.qoeCloudAllDemandsK19=demandasPorId;qoeMduK19=Array.isArray(data.mdu_enderecos)?data.mdu_enderecos:[];qoeMduRenderK19();
 
    // Somente demandas ainda pendentes/recorrentes permanecem na carteira de tratamento.
    data.demandas.filter(d=>['PENDENTE','RECORRENTE'].includes(d.status)).forEach(d=>{
@@ -1357,15 +1394,17 @@ removeAlloc=async function(p){
  if(qoeCloudReady){const {error}=await qoeRpc('gestao_retirar',{p_porta:p});if(error)alert('Erro ao retirar no Supabase: '+error.message);else await qoeRemoteRefresh();}
 };
 const _qoeConfirmTreat=confirmTreatV7;
+let qoeSavingK19=false;
 confirmTreatV7=async function(){
+ if(qoeSavingK19)return;
  const p=treatTargetV7,manager=managerV7.value,type=actionTypeV7.value,ret=returnV7.value.trim(),addr=addressV7.value.trim(),obs=obsV7.value.trim();
- const actedK17=null;
- if(qoeCloudReady&&p&&manager&&type&&ret){
-   const {error}=await qoeRpc('gestao_registrar_tratativa_k17',{p_atuada_em:actedK17,p_porta:p,p_gestor_nome:manager,p_tipo:type,p_descricao:ret,p_endereco:addr||null,p_observacao:obs||null});
-   if(error)return alert('Não foi possível salvar no Supabase: '+error.message);
- }
- _qoeConfirmTreat();
- if(qoeCloudReady)await qoeRemoteRefresh();
+ if(!p||!manager||!type||!ret)return alert('Informe gestor, tipo e devolutiva.');
+ if(['MDU','Indoor'].includes(type)&&!addr)return alert('Informe pelo menos um endereço.');
+ if(!await qoeCheckSession())return alert('Entre na Gestão para registrar a atuação.');
+ qoeSavingK19=true;
+ try{const {data,error}=await qoeRpc('gestao_registrar_tratativa_k19',{p_porta:p,p_gestor_nome:manager,p_tipo:type,p_descricao:ret,p_endereco:addr||null,p_observacao:obs||null,p_finalidade:qoePurposeK19(type,'purposeK19')});
+ if(error)throw error;closeTreatV7();await qoeRemoteRefresh();alert(data?.mensagem||'Registro recebido. Acompanhamento automático após execução.');
+ }catch(e){alert('Não foi possível confirmar o registro: '+(e.message||e));}finally{qoeSavingK19=false;}
 };
 const _qoeRebuild=rebuild;
 rebuild=function(){_qoeRebuild(); if(qoeCloudReady)clearTimeout(window.__qoeSyncT),window.__qoeSyncT=setTimeout(qoeSyncPortfolio,700);};
@@ -1406,6 +1445,7 @@ document.addEventListener('toggle',function(e){
      let group='';
      // V7.11.1C: roteamento explícito dos blocos reposicionados, sem alterar suas regras/cálculos.
      if(p.id==='managerEvolutionV711B') group='visao';
+     else if(p.id==='mduManagementK19'||p.querySelector('#secondaryV78')) group='mdu';
      else if(p.querySelector('#oscillatingV79')) group='tratamento';
      // prioridades para evitar que "tratamento" dentro de "pós-tratamento" leve ao menu errado
      else if(titles.devolutivas.some(k=>txt.includes(k))) group='devolutivas';
@@ -1425,7 +1465,8 @@ document.addEventListener('toggle',function(e){
      visao:['Visão Geral','Situação atual do QoE HFC e pontos que exigem atenção.'],
      tratamento:['Tratamento','Carteira, distribuição e execução das portas em atuação.'],
      acompanhamento:['Acompanhamento','Portas tratadas em monitoramento, estabilização e recorrência.'],
-     devolutivas:['Devolutivas / MDU','Retornos técnicos e demandas MDU/Indoor para análise da Gestão.'],
+     mdu:['MDU / Indoor','Endereços, direcionamento e registro de execução por ocorrência.'],
+     devolutivas:['Devolutivas','Histórico das atuações e devolutivas recebidas. O resultado é confirmado pelas leituras QoE.'],
      semanal:['Mensal / Histórico','Carteira mensal, resultados por técnico e histórico semanal preservado.']
    };
    let box=document.getElementById('qoePageTitle');
