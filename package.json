@@ -1,7 +1,7 @@
 {
- "name":"qoe-hfc-k18-mensal",
+ "name":"qoe-hfc-k19-automatico-mdu",
  "private":true,
  "engines":{"node":">=24"},
- "scripts":{"build":"python3 build.py","test":"node --expose-gc --test tests/client.cjs && node tests/sql.cjs && node tests/monthly.cjs"},
+ "scripts":{"build":"python3 build.py","test":"node --expose-gc --test tests/client.cjs && node tests/sql.cjs && node tests/monthly.cjs && node tests/automatic.cjs"},
  "devDependencies":{"@electric-sql/pglite":"0.5.10","jsdom":"26.1.0"}
 }

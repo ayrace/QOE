@@ -17,34 +17,26 @@ test('Gestão inicializa com todos os scripts, sem rede ou alteração de cartei
  assert.equal(a.w.document.querySelector('#reportMonthK17').type,'month');assert.ok(a.w.document.querySelector('#weeklyTechReportK17'));a.close();
 });
 test('Portal envia três endereços e deixa a data do registro sob controle do banco',async()=>{
- const a=app('portal.html',(name)=>({data:name==='portal_tecnico_carteira_k17'?[{demanda_id:'d1',porta:'P-1',tecnico:'Ana',status:'PENDENTE',nota_atual:70,media_30d:75}]:[],error:null}));await settle();
+ const a=app('portal.html',(name)=>({data:name==='portal_tecnico_carteira_k19'?[{demanda_id:'d1',porta:'P-1',tecnico:'Ana',status:'PENDENTE',nota_atual:70,media_30d:75}]:[],error:null}));await settle();
  a.w.openM('d1','P-1');assert.equal(a.w.document.querySelector('#actionAtK17'),null);a.w.type.value='MDU';a.w.ret.value='Atuação realizada';
  a.w.addrList.querySelector('input').value='Endereço original';a.w.addAddress('Segundo endereço');a.w.addAddress('Terceiro endereço');await a.w.save();
- const c=a.calls.find(x=>x.name==='portal_tecnico_registrar_atuacao_k17');assert.equal(c.args.p_atuada_em,null);
+ const c=a.calls.find(x=>x.name==='portal_tecnico_registrar_atuacao_k19');assert.equal(c.args.p_atuada_em,undefined);assert.equal(c.args.p_finalidade,'ENCAMINHAMENTO');
  assert.equal(c.args.p_endereco,'1. Endereço original | 2. Segundo endereço | 3. Terceiro endereço');assert.match(a.alerts.at(-1),/3 endereços/);assert.deepEqual(a.errors,[]);a.close();
 });
 test('Portal bloqueia endereço MDU ausente e não oferece data editável',async()=>{
  const a=app('portal.html');await settle();a.w.openM('d1','P-1');a.w.ret.value='Atuado';a.w.type.value='MDU';await a.w.save();
  assert.match(a.alerts.at(-1),/endereço/);assert.equal(a.w.document.getElementById('actionAtK17'),null);
- assert.equal(a.calls.some(x=>x.name==='portal_tecnico_registrar_atuacao_k17'),false);a.close();
+ assert.equal(a.calls.some(x=>x.name==='portal_tecnico_registrar_atuacao_k19'),false);a.close();
 });
 test('Portal não duplica envio por dois cliques',async()=>{
- let resolveSend;const a=app('portal.html',(name)=>name==='portal_tecnico_registrar_atuacao_k17'?new Promise(r=>resolveSend=r):{data:[],error:null});await settle();
+ let resolveSend;const a=app('portal.html',(name)=>name==='portal_tecnico_registrar_atuacao_k19'?new Promise(r=>resolveSend=r):{data:[],error:null});await settle();
  a.w.openM('d1','P-1');a.w.ret.value='Atuado';const pending=a.w.save();await a.w.save();
- assert.equal(a.calls.filter(x=>x.name==='portal_tecnico_registrar_atuacao_k17').length,1);resolveSend({data:'tr1',error:null});await pending;a.close();
+ assert.equal(a.calls.filter(x=>x.name==='portal_tecnico_registrar_atuacao_k19').length,1);resolveSend({data:'tr1',error:null});await pending;a.close();
 });
-test('validação tardia apresenta retorno real, em vez de afirmar que ficou em acompanhamento',async()=>{
- const a=app('gestao.html');await settle();a.w.qoePendingReturnsV711K=[{tr:{id:'tr1',data_informada:true,criado_em:'2026-11-01T12:00:00Z',atuada_em:'2026-10-29T12:00:00Z'},d:{demanda_id:'d1',porta:'P-1',tecnico:'Ana'}}];
- a.w.qoeRpc=async()=>({data:{status:'PENDENTE'},error:null});a.w.qoeRemoteRefresh=async()=>{};await a.w.qoeValidateCloudReturnV711K('tr1');
- assert.match(a.alerts.at(-1),/retornou ao técnico/);assert.equal(a.run('state.history.at(-1).actionAt'),'2026-11-01T12:00:00Z');a.close();
-});
-test('tratativa antiga aprova sem confirmação manual da data',async()=>{
- const a=app('gestao.html');await settle();a.w.qoePendingReturnsV711K=[{tr:{id:'old1',criado_em:'2026-11-01T12:00:00Z',data_informada:false},d:{demanda_id:'d1',porta:'P-1',tecnico:'Ana'}}];
- a.w.renderPendingReturnsV711K();let posted;
- a.w.qoeRpc=async(name,args)=>{posted={name,args};return {data:{status:'MONITORAMENTO'},error:null}};a.w.qoeRemoteRefresh=async()=>{};
- assert.equal(a.w.document.getElementById('legacyActionK17-old1'),null);
- await a.w.qoeValidateCloudReturnV711K('old1');assert.equal(posted.name,'gestao_validar_atuacao_k17');
- assert.equal(posted.args.p_atuada_em,'2026-11-01T12:00:00Z');assert.match(a.alerts.at(-1),/data do registro/);a.close();
+test('atuação não oferece aprovação manual e mantém histórico de devolutivas',async()=>{
+ const a=app('gestao.html');await settle();assert.doesNotMatch(a.w.pendingReturnsPanelV711K.textContent,/Validar atuação/);
+ a.w.qoeCloudAllDemandsK19={d1:{demanda_id:'d1',porta:'P-1',tecnico:'Ana'}};a.w.qoeCloudTratativasV711K10=[{id:'tr1',demanda_id:'d1',criado_em:'2026-11-01T12:00:00Z',tipo:'MANUTENCAO_COAXIAL',descricao:'Atuação executada',endereco:'Original | Adicional',finalidade:'EXECUTADA'}];
+ a.w.renderReturnsV78();assert.match(a.w.returnsV78.textContent,/Atuação executada/);assert.match(a.w.returnsV78.textContent,/Original \| Adicional/);a.close();
 });
 test('registro pela Gestão abre o formulário com data real e não usa referências inexistentes',async()=>{
  const a=app('gestao.html');await settle();a.w.openTreatV7('SPEAH-4');
@@ -64,7 +56,7 @@ test('relatório destaca técnico sem atuação e separa aguardando Gestão de r
  const rows=[{tecnico:'Ana',recebidas:10,herdadas:5,novas:5,atuadas:0,devolutivas:0,validadas:0,aguardando_validacao:0,estabilizadas:0,retornos:0,acompanhamento:0,pendentes:10,sem_atuacao:true,assertividade:null,portas_pendentes:['A-1','A-2']},
  {tecnico:'Beto',recebidas:5,herdadas:2,novas:3,atuadas:3,devolutivas:3,validadas:1,aguardando_validacao:2,estabilizadas:0,retornos:0,acompanhamento:1,pendentes:2,sem_atuacao:false,assertividade:null,portas_pendentes:['B-1']}];
  a.run('qoeMonthlyK18.meses[0].tecnicos='+JSON.stringify(rows));await a.w.qoeReportLoadK17();
- assert.match(a.w.techReportBodyK17.rows[0].textContent,/SEM ATUAÇÃO NO MÊS/);assert.match(a.w.techReportBodyK17.rows[1].textContent,/aguardando a Gestão/);
+ assert.match(a.w.techReportBodyK17.rows[0].textContent,/SEM ATUAÇÃO NO MÊS/);assert.match(a.w.techReportBodyK17.rows[1].textContent,/pendência de apoio/);
  let copied;Object.defineProperty(a.w.navigator,'clipboard',{value:{writeText:async x=>{copied=x}}});await a.w.qoeCopyChargeK17(0);
  assert.match(copied,/Herdadas: 5/);assert.match(copied,/A-1, A-2/);assert.match(copied,/data\/hora do registro/);a.close();
 });
@@ -127,4 +119,37 @@ test('navegação Mensal reúne distribuição, resultado por técnico e resumo'
  const a=app('gestao.html');await settle();a.w.qoeMonthlyApplyK18(monthlyPayload());a.w.qoePage('semanal');
  for(const id of ['weeklyTechReportK17','weeklyReportV796'])assert.equal(a.w.document.getElementById(id).classList.contains('qoe-page-hidden'),false);
  assert.match(a.w.qoePageTitle.textContent,/Mensal/);a.close();
+});
+
+test('Portal distingue encaminhamento MDU de execução e mostra mensagem aprovada no retorno',async()=>{
+ const a=app('portal.html',(name)=>({data:name==='portal_tecnico_carteira_k19'?[{demanda_id:'d1',porta:'P-1',tecnico:'Ana',status:'PENDENTE',nota_atual:70,retorno_tratamento:{mensagem:'QoE abaixo de 80 após atuação. Necessário continuar o tratamento.',nota:70,data_leitura:'2026-11-03'}}]:[],error:null}));await settle();
+ assert.match(a.w.list.textContent,/QoE abaixo de 80 após atuação\. Necessário continuar o tratamento\./);
+ a.w.openM('d1','P-1');a.w.type.value='MDU';a.w.syncPurposeK19();assert.equal(a.w.purposeBoxK19.hidden,false);assert.equal(a.w.portalPurposeK19(),'ENCAMINHAMENTO');
+ a.w.purposeK19.value='EXECUTADA';assert.equal(a.w.portalPurposeK19(),'EXECUTADA');a.w.type.value='Necessita apoio';assert.equal(a.w.portalPurposeK19(),'DEVOLUTIVA');a.close();
+});
+function mduRow(){return {id:'e1',secundaria_id:'s1',demanda_origem_id:'d1',tratativa_origem_id:'t1',porta:'P-1',node:'P',tecnico:'Ana',tipo:'MDU',descricao:'Verificar',endereco_original:'1. Rua A | 2. Rua B',endereco:'Rua A',ordem:1,responsavel:'Equipe MDU',versao:2,situacao:'ENCAMINHADO',status_origem:'NOVA',criada_em:'2026-11-01'};}
+test('MDU tem navegação própria e remove lista distribuída dos cartões',async()=>{
+ const a=app('gestao.html');await settle();a.run('qoeMduK19='+JSON.stringify([mduRow()]));a.w.qoeMduRenderK19();a.w.qoePage('mdu');
+ assert.equal(a.w.mduManagementK19.classList.contains('qoe-page-hidden'),false);assert.match(a.w.mduBodyK19.textContent,/Rua A/);assert.match(a.w.mduBodyK19.textContent,/Endereços originais/);
+ assert.equal(a.w.document.querySelectorAll('.distbtn').length,0);assert.equal(a.w.document.querySelectorAll('button[onclick*="toggleDistributed"]').length,0);a.close();
+});
+test('direcionamento e execução MDU usam item, origem e versão sem envio de mensagens',async()=>{
+ const a=app('gestao.html');await settle();a.run('qoeMduK19='+JSON.stringify([mduRow()]));a.w.qoeMduRenderK19();const posted=[];
+ a.w.qoeRpc=async(name,args)=>{posted.push({name,args});return {data:{ok:true},error:null}};a.w.qoeRemoteRefresh=async()=>{};
+ a.w.document.getElementById('mduOwnerK19-e1').value='Equipe Indoor';await a.w.qoeMduDirectK19('e1');assert.deepEqual(JSON.parse(JSON.stringify(posted[0].args)),{p_endereco:'e1',p_responsavel:'Equipe Indoor',p_versao:2});
+ a.w.document.getElementById('mduExecutionK19-e1').value='Ofensor corrigido';await a.w.qoeMduExecuteK19('e1');assert.equal(posted[1].name,'gestao_mdu_executar_k19');assert.equal(posted[1].args.p_versao,2);
+ let copied;Object.defineProperty(a.w.navigator,'clipboard',{value:{writeText:async x=>copied=x}});await a.w.qoeMduCopyK19('e1');assert.match(copied,/Rua A/);assert.equal(posted.length,2);a.close();
+});
+test('cadastro MDU mantém múltiplos endereços na mesma demanda de origem',async()=>{
+ const a=app('gestao.html');await settle();a.w.qoeCloudAllDemandsK19={d1:{demanda_id:'d1',porta:'P-1',tecnico:'Ana',status:'PENDENTE'}};a.w.qoeMduRenderK19();a.w.mduDemandK19.value='d1';a.w.mduDescK19.value='Encaminhar ofensor';a.w.mduAddressesK19.value='Rua original 10\nRua adicional 20';let posted;
+ a.w.qoeRpc=async(name,args)=>{posted={name,args};return {data:'sec-id',error:null}};a.w.qoeRemoteRefresh=async()=>{};await a.w.qoeMduCreateK19();assert.equal(posted.name,'gestao_mdu_cadastrar_k19');assert.equal(posted.args.p_demanda,'d1');assert.deepEqual(Array.from(posted.args.p_enderecos),['Rua original 10','Rua adicional 20']);a.close();
+});
+test('execução pela Gestão chama fluxo automático sem validação posterior',async()=>{
+ const a=app('gestao.html');await settle();a.w.openTreatV7('SPEAH-4');a.w.managerV7.value='Ayrã';a.w.actionTypeV7.value='Manutenção Coaxial';a.w.returnV7.value='Executado';let posted;
+ a.w.qoeCheckSession=async()=>true;a.w.qoeRemoteRefresh=async()=>{};a.w.qoeRpc=async(name,args)=>{posted={name,args};return {data:{status:'MONITORAMENTO',mensagem:'Atuação registrada. Acompanhamento automático iniciado.'},error:null}};
+ await a.w.confirmTreatV7();assert.equal(posted.name,'gestao_registrar_tratativa_k19');assert.equal(posted.args.p_finalidade,'EXECUTADA');assert.match(a.alerts.at(-1),/automático/);a.close();
+});
+
+test('devolutiva encerrada mantém porta e técnico sem depender da carteira ativa',async()=>{
+ const a=app('gestao.html');await settle();a.w.qoeCloudAllDemandsK19={};a.w.qoeCloudTratativasV711K10=[{id:'old',demanda_id:'closed',porta:'OLD-1',tecnico:'Técnico de origem',descricao:'Histórico preservado',criado_em:'2026-10-10',tipo:'MANUTENCAO_COAXIAL'}];a.w.renderReturnsV78();assert.match(a.w.returnsV78.textContent,/OLD-1/);assert.match(a.w.returnsV78.textContent,/Técnico de origem/);a.close();
 });

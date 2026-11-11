@@ -1,61 +1,107 @@
-QoE HFC — Correção isolada K17.2 — Data do registro
+QoE HFC — K19.0 — Mensal + acompanhamento automático + MDU separado
+Candidata em homologação. Aplicação sobre K18 instalada.
 
-CAUSA
-A K17.1 exigia confirmação de data real para registros antigos. Isso bloqueava
-aprovação e processamento do acompanhamento. Regra aprovada pelo gestor:
-a referência será a data/hora em que a atuação foi registrada, já salva no banco.
+APLICAR
+1. No Supabase, execute integralmente 01_SUPABASE_K19_AUTOMATICO_MDU.sql.
+   O script confere dependências e a estrutura de demandas_secundarias antes
+   das alterações. Se houver erro, pare e envie a mensagem; não publique HTML.
+   Não precisa reaplicar K17.2 nem a migração mensal K18.
+2. Substitua SOMENTE gestao.html e portal.html no GitHub ayrace/QOE, branch main.
+3. Confira os arquivos, aguarde o Cloudflare e atualize Gestão e Portal com Ctrl+F5.
+   Ambos devem mostrar K19.0. Feche abas antigas da Gestão/Portal.
 
-APLICAÇÃO (K17.1 deve estar instalada)
-1. No Supabase, abra o SQL Editor e execute INTEGRALMENTE 01_SUPABASE_K17_2.sql.
-   Se houver erro, pare e envie a mensagem. Não publique os HTMLs com SQL falho.
-   Não precisa executar novamente a instalação da K17.1.
-2. No GitHub ayrace/QOE, branch main, substitua gestao.html e portal.html pelos
-   arquivos deste pacote, com esses nomes, preservando os demais arquivos.
-3. Confira os arquivos no GitHub, aguarde o deploy Cloudflare e atualize ambas
-   as páginas com Ctrl+F5. Ambos devem exibir K17.2 — em homologação.
+MUDANÇA AUTORIZADA
+Aprovação manual deixa de ser uma etapa do fluxo normal.
+Atuação EXECUTADA -> acompanhamento automático na data/hora do REGISTRO.
+Acompanhamento não significa resolução. O resultado depende das leituras reais:
+- Uma leitura de dia posterior ao registro <80 -> PENDENTE no mesmo técnico.
+- Sete dias consecutivos com leitura >=80 -> ESTABILIZADA.
+- Dia sem leitura não conta como bom. O dia do registro não é usado, pois o
+  analítico diário não tem horário de coleta.
+Mensagem exibida no Portal e na carteira da Gestão:
+"QoE abaixo de 80 após atuação. Necessário continuar o tratamento."
+A nota/data da leitura ficam disponíveis no aviso do Portal.
+A automação roda ao registrar execução e ao processar a atualização/leitura do
+banco na Gestão. Não há um serviço agendado novo; depende das leituras importadas.
 
-RESULTADO ESPERADO
-- Não aparece o campo nem o botão Confirmar data real.
-- Em Devolutivas, Validar atuação não pede data; a aprovação da atuação continua.
-- Em Acompanhamento a referência é o registro original, mesmo em legado.
-- A data informada por navegador antigo não substitui o timestamp salvo no banco.
-- Aprovação posterior não reinicia a contagem.
-- Diário sem horário: só leituras dos dias posteriores ao registro contam.
-- Uma leitura real posterior <80 devolve à mesma carteira, sem esperar sete dias.
-- Sete dias consecutivos com leituras >=80 estabilizam; lacunas não contam como boas.
-- Ao abrir a Gestão, acompanhamentos antes bloqueados podem retornar ao técnico
-  ou estabilizar imediatamente conforme o histórico de leituras já importado.
-- Conclusões anteriores não são reabertas; recebimento de semanas encerradas
-  não é reescrito. Resultados por técnico usam a referência aprovada de registro.
+DEVOLUTIVAS E LEGADO
+- Devolutivas continuam consultáveis, mesmo sem clicar em validar.
+- Sem oportunidade e Necessita apoio permanecem PENDENTES, sem produção real.
+- Na primeira atualização da Gestão K19, a última tratativa das demandas ainda
+  ATUACAO_REGISTRADA é integrada ao fluxo novo. HFC executado entra em acompanhamento.
+- MDU/Indoor ainda pendente de aprovação é tratado conservadoramente como
+  encaminhamento; a execução dos endereços deve ser registrada separadamente.
+- Monitoramentos já existentes não reiniciam a contagem e históricos não são apagados.
+- O evento técnico ATUACAO_VALIDADA é mantido para compatibilidade, com detalhe
+  modo=AUTOMATICO. Não representa uma aprovação humana nem solução do problema.
+- O UUID de qoe_gestor_atual, usuários, tokens e vínculos permanecem intactos.
 
-CONFERÊNCIA SEM REGISTROS FICTÍCIOS
-1. Confira login, título e versão. Confira carteiras, técnicos, retirada,
-   distribuição manual e histórico preservados.
-2. Abra Devolutivas: confira técnico, porta, descrição e múltiplos endereços de
-   uma atuação real; valide somente se a atuação estiver correta.
-3. Abra Acompanhamento: confira um registro antigo. Não deve pedir outra data.
-   Compare os dias seguintes ao registro no histórico de QoE:
-   <80 => retorno; 7 consecutivos >=80 => estabilizada; insuficientes => acompanha.
-4. Confira relatório individual e contagem da semana. Não inicie uma semana
-   extra só para testar. No próximo avanço real: pendências + novas MANUAIS.
-5. Na próxima atualização diária real, confira que não criou alocação automática.
-6. Faça a regressão operacional online: tratamento, oscilantes, portal, MDU,
-   acompanhamento, retorno, estabilização, recorrência, semanal, Marco 0,
-   WhatsApp, atualização diária, Supabase e histórico das portas.
+NOVA ABA MDU / INDOOR
+1. Técnico seleciona MDU/Indoor e informa se é encaminhamento ou execução realizada.
+   O padrão para MDU é encaminhamento, para não presumir serviço executado.
+2. Pode adicionar vários endereços na mesma tratativa. O texto original fica intacto.
+3. Na Gestão, MDU / Indoor mostra cada endereço, porta/node, técnico/demanda/tratativa
+   de origem, descrição, responsável/equipe e execução. Existe busca e filtro.
+4. Salvar direcionamento registra o responsável; não envia mensagem.
+   Copiar endereço prepara texto para você encaminhar pelo canal que escolher.
+5. Registrar execução exige responsável já salvo e descrição do serviço recebido.
+   É feito pela Gestão para registrar o atendimento informado pela equipe MDU.
+6. Concluir um endereço não conclui os demais. Quando todos os endereços abertos
+   daquela demanda estiverem executados, é criada uma tratativa de execução na
+   MESMA demanda e começa o acompanhamento, se ela estiver PENDENTE/RECORRENTE.
+   Porta já encerrada, estabilizada ou em monitoramento não é reaberta/reiniciada.
+7. Cadastro manual: selecione uma porta pendente/demanda existente, tipo, descrição
+   e um endereço por linha. Não cria nem distribui nova porta. Demandas duplicadas
+   para a mesma porta exigem conferência antes do cadastro.
+8. Atuação MDU já executada pode ser informada diretamente como tal no Portal.
+   É diferente de cadastrar um ofensor que ainda precisa de atendimento.
 
-TESTES EXECUTADOS LOCALMENTE
-39 verificações SQL em PostgreSQL/PGlite e 11 testes de interface/JSDOM passaram.
-Incluem timestamp do servidor, aprovação tardia, legado sem confirmação, retorno
-imediato, sete dias consecutivos/lacunas, virada de mês, endereços, auth/token,
-proteção de acesso, semana, 5 pendentes + 5 novas =10 e Excel real (4058 portas,
-48288 leituras). qoe_gestor_atual continua UUID e RPCs originais preservadas.
-A simulação histórica altera datas APENAS na fixture de testes, nunca em produção.
+As execuções recebidas de MDU mantêm o técnico de origem da carteira para vínculo
+operacional. O responsável real pelo atendimento fica identificado por endereço;
+o relatório continua sendo por carteira/técnico de origem, sem criar novos usuários.
+Registros antigos não recebem execução fictícia: a situação operacional por endereço
+começa pendente até conferência/registro, com o status original visível ao lado.
 
-LIMITES
-A instalação e a regressão completa online ainda dependem da aplicação e da
-conferência do gestor. Não houve acesso de escrita ao banco/produção nesta entrega.
-A versão não foi homologada por conta própria. Backup: os botões legados referem
-funções ausentes na base auditada; não se afirma correção/teste desse fluxo.
-O SQL não cria tabelas nem status, não altera usuários, tokens ou vínculos.
-Somente contexto auxiliar de acompanhamento passa a apontar para criado_em;
-a data/hora original da tratativa e seu histórico permanecem intactos.
+ESTRUTURA
+Reaproveita demandas_secundarias. Não altera suas colunas nem troca seu status.
+Acrescenta duas tabelas privadas: qoe_registros_k19 (finalidade do registro) e
+qoe_mdu_enderecos_k19 (endereços/direcionamento/execução). PENDENTE/ENCAMINHADO/
+EXECUTADO nessa lista são situações da fila de endereços, não novos status de demandas.
+A fonte original de endereços e os históricos permanecem preservados.
+Versão do item protege contra atualização simultânea de dois gestores.
+
+LISTA DISTRIBUÍDA
+O botão foi retirado dos cartões. Alocar a porta continua disponibilizando-a no
+Portal; não depende de marcar uma lista. Marcações antigas permanecem no histórico.
+
+CONFERIR ONLINE SEM ATUAÇÕES FICTÍCIAS
+- Login e K19.0 na Gestão/Portal.
+- Carteiras, mês 11/2026 e histórico semanal preservados.
+- Devolutivas: não exige aprovação e mostra os registros recebidos.
+- Em uma atuação REAL, confirmar passagem automática ao acompanhamento.
+- Em MDU, conferir endereço original e todos os adicionais, salvar responsável,
+  copiar o texto e registrar apenas execução que realmente ocorreu.
+- Conferir retorno por nota <80 e a mensagem exata no Portal do mesmo técnico.
+- Conferir estabilização por sete dias consecutivos reais e retorno em casos ruins.
+- Conferir relatório mensal: encaminhamento/apoio não são execução.
+- Na próxima atualização real do Excel: não deve criar alocações nem mudar o mês.
+- Regressão online restante: técnicos, retirada, distribuição/transferência manual,
+  oscilantes, recorrência, histórico das portas, WhatsApp, média 30d+atual,
+  Supabase, Marco 0 e backup. Não reexecute a migração Marco 0 para testar.
+
+TESTES EXECUTADOS
+21 testes de interface/JSDOM passaram, incluindo o Excel real (4058 portas,
+48288 leituras), múltiplos endereços, navegação mensal/MDU, cópia sem envio e
+registro automático pela Gestão/Portal.
+50 verificações SQL K19 passaram: autorização/token, reaplicação, data do registro,
+retorno/mensagem, sete dias, apoio sem produção, MDU por endereço, preservação,
+concorrência por versão, execução parcial/completa, integração com/sem trigger,
+retorno de porta antes observada e relatório excluindo encaminhamentos.
+Também passaram as 79 verificações SQL anteriores do fluxo e controle mensal.
+Fixtures simulam fontes/efeitos anteriores; não equivalem a teste no banco real.
+Backup legado: referências a funções ausentes na base auditada permanecem;
+esse fluxo não foi corrigido nem declarado validado nesta entrega.
+
+STATUS
+Código e testes preservados em branch separada. Não foi alterada a main nem o
+Supabase de produção pelo assistente. Aplicação e homologação online pendentes.

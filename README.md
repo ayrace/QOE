@@ -1,17 +1,17 @@
-# QoE HFC — Gestão mensal K18.0
+# QoE HFC — K19.0 em homologação
 
-Evolução estrutural autorizada pelo gestor em 10/11/2026: distribuição e cobrança mensais a partir de novembro, com pendências herdadas + novas portas manuais, sem quantidade fixa. Migração não cria nem redistribui demandas. Histórico semanal permanece consultável.
+Evolução autorizada: acompanhamento automático após registro de atuação executada, MDU/Indoor em área própria com endereços/direcionamento/execução, retirada da marcação de lista distribuída e aviso exato de retorno por QoE <80.
 
-Aplicar sobre K17.1: leia `03_APLICAR_E_CONFERIR.txt`. SQL K17.2 primeiro (data do registro), SQL mensal K18 depois, então os dois HTMLs. Não publicar HTML se o SQL falhar. A versão está em homologação; produção não foi alterada nesta entrega.
+Aplicar somente sobre K18: `01_SUPABASE_K19_AUTOMATICO_MDU.sql`, então os dois HTMLs. Veja `02_APLICAR_E_CONFERIR.txt`. Não houve escrita no banco nem publicação na main pelo assistente. Homologação online pendente.
 
-## Fontes e geração
+## Fontes
 
-`baseline/k16_2.html` é a base congelada. `baseline/evolucoes_preservadas.json` recompõe as evoluções publicadas com hashes de origem. `build_k172.py` preserva o fluxo aprovado da data do registro e as integrações; `build.py` aplica a evolução mensal. `monthly_client.js` e `monthly_summary.js` contêm o novo período. Não gera código a partir de HTML com erro.
+Geração reproduzível a partir de K16.2 congelada e evoluções preservadas: `baseline/`, `build_k172.py`, `build_k18.py`, `build.py`. A versão mais recente não foi promovida a base validada automaticamente. `mdu_client.js` contém a integração nova; o SQL preserva a tabela existente de secundárias e adiciona duas projeções privadas, sem alterar usuários, tokens, UUID do gestor ou inventar status de demanda.
 
-`python3 build.py` gera Gestão e Portal. `npm install` e `npm test` executam o conjunto. `00_PRE_REQUISITO_K17_1.sql` serve de fixture de instalação nos testes; não deve ser reaplicado em uma produção K17.1 existente.
+`python3 build.py` recompõe Gestão/Portal. `npm install` e `npm test` executam o conjunto. SQLs anteriores são pré-requisitos de fixtures nos testes, não uma instrução de reaplicação em produção.
 
 ## Validação
 
-79 verificações SQL e 16 testes JSDOM passaram localmente, incluindo Excel real de 4058 portas/48288 leituras. O Excel e seu JSON privado não integram o repositório; o teste do arquivo real é pulado se não estiver disponível (`QOE_REAL_EXCEL`). Não houve teste autenticado no Supabase/Cloudflare de produção. Homologação continua pendente.
+21 testes JSDOM, 50 verificações K19 e 79 verificações SQL anteriores passaram localmente. Excel real foi usado (4058 portas/48288 leituras); os bytes privados não são versionados e o teste é pulado quando o Excel não está disponível (`QOE_REAL_EXCEL`). Não houve regressão autenticada no Supabase/Cloudflare real.
 
-Novembro é uma consolidação de pendências e registros conhecidos, não uma reconstrução inventada de eventos ausentes. A migração mantém os dados originais, sinaliza demandas duplicadas e separa registro, validação e resultado. Pendências após retorno usam a mesma demanda/técnico. Os resultados podem amadurecer após fechamento; recebimentos encerrados são preservados.
+A execução MDU é registrada pela Gestão em nome do atendimento informado, mantendo técnico/demanda de origem. Responsável da equipe fica por endereço. Encaminhamento/apoio não contam como execução; os resultados dependem de leituras diárias posteriores ao registro. Legado MDU sem execução identificada não é encerrado automaticamente. Eventos técnicos de aceite têm modo AUTOMATICO para não confundir com aprovação humana.
